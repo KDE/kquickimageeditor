@@ -1,0 +1,6 @@
+module org.kde.kquickimageeditor
+
+classname KQuickImageEditorPlugin
+plugin kquickimageeditorplugin
+
+typeinfo plugins.qmltypes
