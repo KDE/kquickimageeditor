@@ -5,9 +5,12 @@ set(
     
     code/commands/cropcommand.cpp
     code/commands/mirrorcommand.cpp
+    code/commands/rotatecommand.cpp
     code/kquickimageeditor_plugin.cpp
     code/resizehandle.cpp
     code/resizerectangle.cpp
+    code/imageitem.cpp
+    code/imagedocument.cpp
 )
 set(
     pluginData

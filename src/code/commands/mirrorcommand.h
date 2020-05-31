@@ -18,14 +18,13 @@ class MirrorCommand : public UndoCommand
 {
 public:
     MirrorCommand(bool horizonal, bool vertical);
-    ~MirrorCommand() = default;
+    ~MirrorCommand() override = default;
 
     virtual QImage redo(QImage image) override;
 
     virtual QImage undo(QImage image) override;
     
 private:
-    QImage m_image;
     bool m_horizontal;
     bool m_vertical;
 };

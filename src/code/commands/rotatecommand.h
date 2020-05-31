@@ -9,25 +9,24 @@
 #include "undocommand.h"
 
 #include <QImage>
-#include <QRect>
+#include <QTransform>
 
 /**
- * @brief CropCommand that crop the current image.
+ * @brief RotateCommand that rotates the current image.
  */
-class CropCommand : public UndoCommand
+class RotateCommand : public UndoCommand
 {
 public:
     /**
      * Contructor
      */
-    CropCommand(const QRect &cropRect);
-    ~CropCommand() override = default;
+    RotateCommand(const QTransform &m_tranform);
+    ~RotateCommand() override = default;
 
     virtual QImage redo(QImage image) override;
 
     virtual QImage undo(QImage image) override;
     
 private:
-    QImage m_image;
-    QRect m_cropRect;
+    QTransform m_tranform;
 };

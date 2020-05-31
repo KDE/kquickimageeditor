@@ -14,7 +14,7 @@ class QImage;
 class UndoCommand
 {
 public:
-    ~UndoCommand();
+    virtual ~UndoCommand() = 0;
     
     /**
      * Applies the change to the document.
