@@ -1,0 +1,3 @@
+# KQuickImageEditor
+
+Image editing components
