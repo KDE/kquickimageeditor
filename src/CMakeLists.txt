@@ -2,8 +2,12 @@ include_directories(code)
 
 set(
     sources
-
+    
+    code/commands/cropcommand.cpp
+    code/commands/mirrorcommand.cpp
     code/kquickimageeditor_plugin.cpp
+    code/resizehandle.cpp
+    code/resizerectangle.cpp
 )
 set(
     pluginData
