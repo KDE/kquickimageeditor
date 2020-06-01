@@ -73,7 +73,7 @@ bool ResizeHandle::resizeTop() const
 
 bool ResizeHandle::resizeRight() const
 {
-    return m_resizeCorner == Right || m_resizeCorner == TopRight ||m_resizeCorner == BottomRight;
+    return m_resizeCorner == Right || m_resizeCorner == TopRight || m_resizeCorner == BottomRight;
 }
 
 bool ResizeHandle::resizeBottom() const

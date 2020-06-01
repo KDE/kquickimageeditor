@@ -3,6 +3,7 @@ include_directories(code)
 set(
     sources
     
+    code/commands/undocommand.cpp
     code/commands/cropcommand.cpp
     code/commands/mirrorcommand.cpp
     code/commands/rotatecommand.cpp
@@ -29,6 +30,12 @@ target_compile_options(
     kquickimageeditorplugin
     PRIVATE
         -Wall -Werror
+)
+
+target_compile_features(
+    kquickimageeditorplugin
+    PUBLIC
+        cxx_std_17
 )
 
 target_link_libraries(

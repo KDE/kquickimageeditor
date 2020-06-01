@@ -64,7 +64,7 @@ void ImageDocument::undo()
 
 void ImageDocument::crop(int x, int y, int width, int height)
 {
-    auto command = new CropCommand(QRect(x, y, width, height));
+    const auto command = new CropCommand(QRect(x, y, width, height));
     m_image = command->redo(m_image);
     m_undos.append(command);
     setEdited(true);
@@ -73,7 +73,7 @@ void ImageDocument::crop(int x, int y, int width, int height)
 
 void ImageDocument::mirror(bool horizontal, bool vertical)
 {
-    auto command = new MirrorCommand(horizontal, vertical);
+    const auto command = new MirrorCommand(horizontal, vertical);
     m_image = command->redo(m_image);
     m_undos.append(command);
     setEdited(true);
@@ -82,12 +82,10 @@ void ImageDocument::mirror(bool horizontal, bool vertical)
 
 void ImageDocument::rotate(int angle)
 {
-    QTransform tranform;
-    tranform.rotate(angle);
-    auto command = new RotateCommand(tranform);
-    qDebug() << m_image;
+    QTransform transform;
+    transform.rotate(angle);
+    const auto command = new RotateCommand(transform);
     m_image = command->redo(m_image);
-    qDebug() << m_image;
     m_undos.append(command);
     setEdited(true);
     Q_EMIT imageChanged();
