@@ -108,6 +108,7 @@ bool ImageDocument::save()
 
 bool ImageDocument::saveAs(const QUrl& location)
 {
+    Q_UNUSED(location)
     return true;
 }
 

@@ -6,22 +6,13 @@ set(REQUIRED_QT_VERSION 5.12.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION ${KF5_VERSION})
 
-include(GNUInstallDirs)
-
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 find_package(ECM ${KF5_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
+include(GNUInstallDirs)
 include(KDEInstallDirs)
 include(KDECMakeSettings)
+include(KDECompilerSettings)
 
 find_package(Qt5 COMPONENTS Core Quick REQUIRED)
 

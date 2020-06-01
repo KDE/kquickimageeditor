@@ -29,13 +29,7 @@ add_library(
 target_compile_options(
     kquickimageeditorplugin
     PRIVATE
-        -Wall -Werror
-)
-
-target_compile_features(
-    kquickimageeditorplugin
-    PUBLIC
-        cxx_std_17
+        -Werror
 )
 
 target_link_libraries(
