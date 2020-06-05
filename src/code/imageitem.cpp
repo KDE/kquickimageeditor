@@ -93,7 +93,7 @@ void ImageItem::paint(QPainter *painter)
     painter->setRenderHint(QPainter::Antialiasing, m_smooth);
     painter->setRenderHint(QPainter::SmoothPixmapTransform, m_smooth);
 
-     if (m_fillMode == TileVertically) {
+    if (m_fillMode == TileVertically) {
         painter->scale(width()/(qreal)m_image.width(), 1);
     }
 
@@ -131,6 +131,15 @@ int ImageItem::paintedHeight() const
     }
 
     return m_paintedRect.height();
+}
+
+int ImageItem::verticalPadding() const
+{
+    if (m_image.isNull()) {
+        return 0;
+    }
+
+    return (height() - m_paintedRect.height()) / 2;
 }
 
 void ImageItem::updatePaintedRect()
@@ -181,6 +190,7 @@ void ImageItem::updatePaintedRect()
         m_paintedRect = destRect;
         Q_EMIT paintedHeightChanged();
         Q_EMIT paintedWidthChanged();
+        Q_EMIT verticalPaddingChanged();
     }
 }
 

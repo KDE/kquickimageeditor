@@ -156,7 +156,7 @@ QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdateP
         node->setFlag(QSGNode::OwnsGeometry);
         
         QSGFlatColorMaterial *material = new QSGFlatColorMaterial;
-        material->setColor(QColor(255, 0, 0));
+        material->setColor(QColor(0, 0, 0, 70));
         node->setMaterial(material);
         node->setFlag(QSGNode::OwnsMaterial);
     } else {
@@ -233,7 +233,7 @@ void ResizeRectangle::mouseReleaseEvent(QMouseEvent *event)
 
 void ResizeRectangle::mousePressEvent(QMouseEvent *event)
 {
-    m_mouseDownPosition = event->windowPos();
+    m_mouseDownPosition = event->pos();
     m_mouseDownGeometry = QPointF(m_insideX, m_insideY);
     if (m_mouseDownPosition.x() >= m_insideX  && m_mouseDownPosition.x() <= m_insideX + m_insideWidth
         && m_mouseDownPosition.y() >= m_insideY && m_mouseDownPosition.y() <= m_insideY + m_insideHeight) {
@@ -245,7 +245,7 @@ void ResizeRectangle::mousePressEvent(QMouseEvent *event)
 void ResizeRectangle::mouseMoveEvent(QMouseEvent *event)
 {
     if (m_mouseClickedOnRectangle) {
-        const QPointF difference = m_mouseDownPosition - event->windowPos();
+        const QPointF difference = m_mouseDownPosition - event->pos();
         const qreal x = m_mouseDownGeometry.x() - difference.x();
         const qreal y = m_mouseDownGeometry.y() - difference.y();
         setInsideX(x);
