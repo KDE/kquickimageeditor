@@ -35,7 +35,8 @@
  * }
  * @endcode
  */
-class ImageDocument : public QObject {
+class ImageDocument : public QObject
+{
     Q_OBJECT
     
     Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)

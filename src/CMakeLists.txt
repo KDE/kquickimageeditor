@@ -12,6 +12,7 @@ set(
     code/resizerectangle.cpp
     code/imageitem.cpp
     code/imagedocument.cpp
+    resources.qrc
 )
 set(
     pluginData

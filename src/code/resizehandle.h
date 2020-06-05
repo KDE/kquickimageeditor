@@ -9,10 +9,11 @@
 
 #include <QQuickItem>
 
+class ResizeRectangle;
+
 class ResizeHandle: public QQuickItem
 {
     Q_OBJECT
-    Q_PROPERTY(Corner resizeCorner MEMBER m_resizeCorner NOTIFY resizeCornerChanged)
     Q_PROPERTY(bool resizeBlocked READ resizeBlocked NOTIFY resizeBlockedChanged)
     Q_PROPERTY(QQuickItem *rectangle READ rectangle WRITE setRectangle NOTIFY rectangleChanged)
 
@@ -36,6 +37,8 @@ public:
     void setRectangle(QQuickItem *rectangle);
 
     bool resizeBlocked() const;
+    
+    void setResizeCorner(Corner corner);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -60,5 +63,5 @@ private:
     Corner m_resizeCorner = Left;
     bool m_resizeWidthBlocked = false;
     bool m_resizeHeightBlocked = false;
-    QQuickItem *m_rectangle = nullptr;
+    ResizeRectangle *m_rectangle = nullptr;
 };
