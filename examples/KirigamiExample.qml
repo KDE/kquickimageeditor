@@ -14,7 +14,9 @@ import QtGraphicalEffects 1.12
 
 Kirigami.ApplicationWindow {
     id: root
-    Component.onCompleted: pageStack.layers.push(editorComponent);
+    Component.onCompleted: {
+        pageStack.layers.push(editorComponent);
+    }
     
     pageStack.initialPage: Kirigami.Page {
         QQC2.Button {
@@ -53,7 +55,7 @@ Kirigami.ApplicationWindow {
                 const ratioX = editImage.paintedWidth / editImage.nativeWidth;
                 const ratioY = editImage.paintedHeight / editImage.nativeHeight;
                 rootEditorView.resizing = false
-                imageDoc.crop((resizeRectangle.insideX - rootEditorView.contentItem.width + editImage.paintedWidth) / ratioX, (resizeRectangle.insideY - rootEditorView.contentItem.height + editImage.paintedHeight) / ratioY, resizeRectangle.insideWidth / ratioX, resizeRectangle.insideHeight / ratioY);
+                imageDoc.crop(resizeRectangle.insideX / ratioX, resizeRectangle.insideY / ratioY, resizeRectangle.insideWidth / ratioX, resizeRectangle.insideHeight / ratioY);
             }
 
             actions {
@@ -118,21 +120,11 @@ Kirigami.ApplicationWindow {
                 path: rootEditorView.imagePath
             }
 
-            contentItem: Item {
-                KQuickImageEditor.ImageItem {
-                    id: editImage
-                    fillMode: KQuickImageEditor.ImageItem.PreserveAspectFit
-                    image: imageDoc.image
-                    anchors.fill: parent
-                }
-                
-                OpacityMask {
-                    anchors.fill: editImage
-                    visible: rootEditorView.resizing
-                    maskSource: resizeRectangle
-                    source: editImage
-                    invert: false
-                }
+            KQuickImageEditor.ImageItem {
+                id: editImage
+                fillMode: KQuickImageEditor.ImageItem.PreserveAspectFit
+                image: imageDoc.image
+                anchors.fill: parent
             }
 
             header: QQC2.ToolBar {
@@ -191,10 +183,10 @@ Kirigami.ApplicationWindow {
 
                 visible: rootEditorView.resizing
 
-                width: editImage.width
-                height: editImage.height
+                width: editImage.paintedWidth
+                height: editImage.paintedHeight
                 x: 0
-                y: 0
+                y: editImage.verticalPadding
                 
                 insideX: 100
                 insideY: 100
