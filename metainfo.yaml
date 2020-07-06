@@ -6,4 +6,11 @@ platforms:
 public_lib: true
 deprecated: false
 release: false
-group: KQuickImageEditor
+group: kquickimageeditor
+group_info:
+    name: kquickimageeditor
+    fancyname: KQuickImageEditor
+    maintainer: carlschwan
+    platforms:
+      - Linux
+    description: Provide an image editor for QML applications
