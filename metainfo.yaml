@@ -1,11 +1,9 @@
 description: QtQuick plugins for image editing UI
-tier: 2
+maintainer: carlschwan
 type: functional
 platforms:
     - name: Linux
 public_lib: true
 deprecated: false
-release: true
-mailinglist: plasma-devel
-group: Frameworks
-subgroup: Tier 2
+release: false
+group: KQuickImageEditor
