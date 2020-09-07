@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: BSD-2-Clause
+
 cmake_minimum_required(VERSION 3.5)
 
 set(KF5_VERSION "5.70.0") # handled by release scripts
