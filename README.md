@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2020 Carl Schwan <carl@carlschwan.eu>
+
+SPDX-License-Identifier: BSD-2-Clause
+-->
+
 # KQuickImageEditor
 
 ## Introduction
@@ -19,4 +25,3 @@ KQuickImageEditor is a licensed under the Lesser General Public License version
 
 The examples are licensed under the 2-Clause BSD, that can be found in
 [here](LICENSES/BSD-2-Clause.txt).
-
