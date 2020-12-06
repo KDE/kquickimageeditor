@@ -96,20 +96,19 @@ void ImageDocument::setEdited(bool value)
     if (m_edited == value) {
         return;
     }
-    
+
     m_edited = value;
     Q_EMIT editedChanged();
 }
 
 bool ImageDocument::save()
 {
-    return true;
+    return m_image.save(m_path);
 }
 
 bool ImageDocument::saveAs(const QUrl& location)
 {
-    Q_UNUSED(location)
-    return true;
+    return m_image.save(location.toLocalFile());
 }
 
 QString ImageDocument::path() const
