@@ -4,6 +4,8 @@
 
 include_directories(code)
 
+ecm_create_qm_loader(kquickimageeditor_QM_LOADER libkquickimageeditorplugin_qt)
+
 set(
     sources
     code/commands/undocommand.cpp
@@ -16,6 +18,7 @@ set(
     code/imageitem.cpp
     code/imagedocument.cpp
     resources.qrc
+    ${kquickimageeditor_QM_LOADER}
 )
 set(
     pluginData

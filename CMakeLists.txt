@@ -10,7 +10,6 @@ set(REQUIRED_QT_VERSION 5.12.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION ${KF5_VERSION})
 
-
 find_package(ECM ${KF5_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
@@ -26,8 +25,6 @@ include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
 include(KDEPackageAppTemplates)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
-
-ecm_create_qm_loader(kirigami_QM_LOADER libkirigami2plugin_qt)
 
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/KQuickImageEditorConfig.cmake.in"
