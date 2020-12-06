@@ -22,8 +22,8 @@ void ResizeRectangle::componentComplete()
 {
     QQuickItem::componentComplete();
     QQmlEngine *engine = qmlEngine(this);
-    m_handleComponent = new QQmlComponent(engine, QUrl("qrc:/BasicResizeHandle.qml"));
-    
+    m_handleComponent = new QQmlComponent(engine, QUrl(QStringLiteral("qrc:/BasicResizeHandle.qml")));
+
     auto handleItem = qobject_cast<QQuickItem *>(m_handleComponent->create());
     m_handleBottomLeft = qobject_cast<ResizeHandle *>(handleItem);
     m_handleBottomLeft->setParent(this);
@@ -74,7 +74,7 @@ void ResizeRectangle::updateHandles()
         m_handleBottomLeft->setY(m_insideY + m_insideHeight - 5);
     }
 }
-    
+
 qreal ResizeRectangle::insideX() const
 {
     return m_insideX;
@@ -154,7 +154,7 @@ QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdateP
         geometry->setDrawingMode(GL_TRIANGLES);
         node->setGeometry(geometry);
         node->setFlag(QSGNode::OwnsGeometry);
-        
+
         QSGFlatColorMaterial *material = new QSGFlatColorMaterial;
         material->setColor(QColor(0, 0, 0, 70));
         node->setMaterial(material);
@@ -164,60 +164,60 @@ QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdateP
         geometry = node->geometry();
         geometry->allocate(vertexCount, indexCount);
     }
-    
+
     QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
     points[0].set(0, 0);
     points[1].set(0, height());
     points[2].set(m_insideX, 0);
     points[3].set(m_insideX, height());
-    
+
     points[4].set(m_insideX + m_insideWidth, 0);
     points[5].set(m_insideX + m_insideWidth, height());
     points[6].set(width(), 0);
     points[7].set(width(), height());
-    
+
     points[8].set(m_insideX, m_insideY);
     points[9].set(m_insideX + m_insideWidth, m_insideY);
     points[10].set(m_insideX + m_insideWidth, m_insideY + m_insideHeight);
     points[11].set(m_insideX, m_insideY + m_insideHeight);
-    
+
     quint16* indices = geometry->indexDataAsUShort();
     // left
-    indices[0 + 0] = 0; 
-    indices[0 + 1] = 1; 
-    indices[0 + 2] = 2; 
-    
-    indices[3 + 0] = 3; 
-    indices[3 + 1] = 1; 
+    indices[0 + 0] = 0;
+    indices[0 + 1] = 1;
+    indices[0 + 2] = 2;
+
+    indices[3 + 0] = 3;
+    indices[3 + 1] = 1;
     indices[3 + 2] = 2;
-    
+
     // right
-    indices[6 + 0] = 4; 
-    indices[6 + 1] = 5; 
+    indices[6 + 0] = 4;
+    indices[6 + 1] = 5;
     indices[6 + 2] = 6;
-    
-    indices[9 + 0] = 7; 
-    indices[9 + 1] = 5; 
-    indices[9 + 2] = 6; 
-    
+
+    indices[9 + 0] = 7;
+    indices[9 + 1] = 5;
+    indices[9 + 2] = 6;
+
     // top
-    indices[12 + 0] = 2; 
-    indices[12 + 1] = 8; 
-    indices[12 + 2] = 4; 
-    
-    indices[15 + 0] = 9; 
-    indices[15 + 1] = 8; 
-    indices[15 + 2] = 4; 
-    
+    indices[12 + 0] = 2;
+    indices[12 + 1] = 8;
+    indices[12 + 2] = 4;
+
+    indices[15 + 0] = 9;
+    indices[15 + 1] = 8;
+    indices[15 + 2] = 4;
+
     // bottom
-    indices[18 + 0] = 3; 
-    indices[18 + 1] = 11; 
-    indices[18 + 2] = 10; 
-    
-    indices[21 + 0] = 3; 
-    indices[21 + 1] = 5; 
+    indices[18 + 0] = 3;
+    indices[18 + 1] = 11;
+    indices[18 + 2] = 10;
+
+    indices[21 + 0] = 3;
+    indices[21 + 1] = 5;
     indices[21 + 2] = 10;
-    
+
     geometry->markIndexDataDirty();
     geometry->markVertexDataDirty();
     node->markDirty(QSGNode::DirtyGeometry | QSGNode::DirtyMaterial);

@@ -14,7 +14,13 @@ class KQuickImageEditorPlugin : public QQmlExtensionPlugin
 public:
     void registerTypes(const char *uri) override;
 private:
-    QUrl fromBase(QString url) {
-        return QDir::cleanPath(baseUrl().toString()+QDir::separator()+url);
+    QUrl fromBase(QString path) {
+#if defined(Q_OS_ANDROID) && QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+        return QUrl(QStringLiteral(":/android_rcc_bundle/qml/org/kde/kirigami.2/") + path);
+#elif defined(KIRIGAMI_BUILD_TYPE_STATIC)
+        return QUrl(QStringLiteral(":/org/kde/kirigami.2/") + path);
+#else
+        return QUrl(baseUrl().toLocalFile() + QLatin1Char('/') + path);
+#endif
     };
 };

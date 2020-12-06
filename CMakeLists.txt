@@ -10,6 +10,7 @@ set(REQUIRED_QT_VERSION 5.12.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION ${KF5_VERSION})
 
+
 find_package(ECM ${KF5_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
@@ -17,7 +18,44 @@ include(GNUInstallDirs)
 include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(KDECompilerSettings)
+include(FeatureSummary)
+include(ECMPoQmTools)
+include(ECMSetupVersion)
+include(CMakePackageConfigHelpers)
+include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
+include(KDEPackageAppTemplates)
+
+set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
+
+ecm_create_qm_loader(kirigami_QM_LOADER libkirigami2plugin_qt)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/KQuickImageEditorConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
+    INSTALL_DESTINATION  ${CMAKECONFIG_INSTALL_DIR}
+    PATH_VARS  KF5_INCLUDE_INSTALL_DIR CMAKE_INSTALL_PREFIX
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
+    DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
+    COMPONENT Devel
+)
+
+install(EXPORT KQuickImageEditorTargets
+    DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
+    FILE KQuickImageEditorTargets.cmake
+)
+
+ecm_setup_version(${KF5_VERSION}
+    VARIABLE_PREFIX KQUICKIMAGEEDITOR
+    VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_version.h"
+    SOVERSION 1
+)
 
 find_package(Qt5 COMPONENTS Core Quick REQUIRED)
 
 add_subdirectory(src)
+
+feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
