@@ -48,6 +48,7 @@ install(EXPORT KQuickImageEditorTargets
 ecm_setup_version(${KF5_VERSION}
     VARIABLE_PREFIX KQUICKIMAGEEDITOR
     VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_version.h"
+    PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
     SOVERSION 1
 )
 
