@@ -14,15 +14,15 @@
 #include <QUrl>
 #include <QString>
 #include <QDebug>
+#include <QFile>
+#include <QImage>
 
 ImageDocument::ImageDocument(QObject *parent)
     : QObject(parent)
 {
     connect(this, &ImageDocument::pathChanged,
-            this, [this] (const QString &url) {
-                /** Since the url passed by the model in the ImageViewer.qml contains 'file://' prefix */
-                const QString location = QUrl(url).path();
-                m_image = QImage(location);
+            this, [this] (const QUrl &url) {
+                m_image = QImage(url.isLocalFile() ? url.toLocalFile() : url.toString());
                 m_edited = false;
                 Q_EMIT editedChanged();
                 Q_EMIT imageChanged();
@@ -103,20 +103,20 @@ void ImageDocument::setEdited(bool value)
 
 bool ImageDocument::save()
 {
-    return m_image.save(m_path);
+    return m_image.save(m_path.isLocalFile() ? m_path.toLocalFile() : m_path.toString());
 }
 
 bool ImageDocument::saveAs(const QUrl& location)
 {
-    return m_image.save(location.toLocalFile());
+    return m_image.save(location.isLocalFile() ? location.toLocalFile() : location.toString());
 }
 
-QString ImageDocument::path() const
+QUrl ImageDocument::path() const
 {
     return m_path;
 }
 
-void ImageDocument::setPath(const QString &path)
+void ImageDocument::setPath(const QUrl &path)
 {
     m_path = path;
     Q_EMIT pathChanged(path);

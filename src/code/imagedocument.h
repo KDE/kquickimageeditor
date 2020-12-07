@@ -7,8 +7,9 @@
 #pragma once
 
 #include <QObject>
-#include <QImage>
 #include <QStack>
+#include <QImage>
+#include <QUrl>
 
 #include "commands/undocommand.h"
 
@@ -39,7 +40,7 @@ class ImageDocument : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
+    Q_PROPERTY(QUrl path READ path WRITE setPath NOTIFY pathChanged)
     Q_PROPERTY(QImage image READ image NOTIFY imageChanged)
     Q_PROPERTY(bool edited READ edited WRITE setEdited NOTIFY editedChanged)
 
@@ -69,8 +70,8 @@ public:
      */
     void setEdited(bool value);
 
-    QString path() const;
-    void setPath(const QString &path);
+    QUrl path() const;
+    void setPath(const QUrl &path);
 
     /**
      * Rotate the image.
@@ -118,12 +119,12 @@ public:
     Q_INVOKABLE bool saveAs(const QUrl &location);
 
 Q_SIGNALS:
-    void pathChanged(const QString &url);
+    void pathChanged(const QUrl &url);
     void imageChanged();
     void editedChanged();
 
 private:
-    QString m_path;
+    QUrl m_path;
     QStack<UndoCommand *> m_undos;
     QImage m_image;
     bool m_edited;
