@@ -21,7 +21,7 @@ include(FeatureSummary)
 include(ECMPoQmTools)
 include(ECMSetupVersion)
 include(CMakePackageConfigHelpers)
-include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
+#include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
 include(KDEPackageAppTemplates)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")

@@ -13,9 +13,13 @@
 
 void KQuickImageEditorPlugin::registerTypes(const char *uri)
 {
+#if defined(Q_OS_ANDROID) && QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    QResource::registerResource(QStringLiteral("assets:/android_rcc_bundle.rcc"));
+#endif
+
     qmlRegisterType<ResizeHandle>(uri, 1, 0, "ResizeHandle");
     qmlRegisterType<ResizeRectangle>(uri, 1, 0, "ResizeRectangle");
     qmlRegisterType<ImageItem>(uri, 1, 0, "ImageItem");
     qmlRegisterType<ImageDocument>(uri, 1, 0, "ImageDocument");
-    qmlRegisterType(fromBase(QStringLiteral("controls/BasicResizeHandle.qml")), uri, 1, 0, "BasicResizeHandle");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("controls/BasicResizeHandle.qml")), uri, 1, 0, "BasicResizeHandle");
 }
