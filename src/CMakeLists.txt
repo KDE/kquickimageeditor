@@ -23,7 +23,7 @@ set(
 set(
     pluginData
 
-    qrc/qmldir
+    controls/qmldir
 )
 
 add_library(
@@ -56,12 +56,12 @@ if (BUILD_SHARED_LIBS)
         COMMAND ${CMAKE_COMMAND} -E
                 make_directory ${CMAKE_BINARY_DIR}/bin/org/kde/kquickimageeditor/
         COMMAND ${CMAKE_COMMAND} -E
-                copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/qrc/controls ${CMAKE_BINARY_DIR}/bin/org/kde/kquickimageeditor/
+                copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/controls ${CMAKE_BINARY_DIR}/bin/org/kde/kquickimageeditor/
         COMMAND ${CMAKE_COMMAND} -E
                 copy $<TARGET_FILE:kquickimageeditorplugin> ${CMAKE_BINARY_DIR}/bin/org/kde/kquickimageeditor/
     )
 
-    install(DIRECTORY qrc/controls/ DESTINATION ${KDE_INSTALL_QMLDIR}/org/kde/kquickimageeditor)
+    install(DIRECTORY controls/ DESTINATION ${KDE_INSTALL_QMLDIR}/org/kde/kquickimageeditor)
 
     include(ECMGeneratePriFile)
     ecm_generate_pri_file(BASE_NAME KQuickImageEditor LIB_NAME KQuickImageEditor DEPS "core qml quick svg" FILENAME_VAR PRI_FILENAME )

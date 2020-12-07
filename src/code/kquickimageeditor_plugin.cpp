@@ -22,5 +22,5 @@ void KQuickImageEditorPlugin::registerTypes(const char *uri)
     qmlRegisterType<ResizeRectangle>(uri, 1, 0, "ResizeRectangle");
     qmlRegisterType<ImageItem>(uri, 1, 0, "ImageItem");
     qmlRegisterType<ImageDocument>(uri, 1, 0, "ImageDocument");
-    qmlRegisterType(resolveFileUrl(QStringLiteral("controls/BasicResizeHandle.qml")), uri, 1, 0, "BasicResizeHandle");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("BasicResizeHandle.qml")), uri, 1, 0, "BasicResizeHandle");
 }

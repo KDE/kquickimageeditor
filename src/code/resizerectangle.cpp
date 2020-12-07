@@ -9,6 +9,7 @@
 #include <QSGGeometry>
 #include <QSGGeometryNode>
 #include <QSGFlatColorMaterial>
+#include <QDebug>
 
 
 ResizeRectangle::ResizeRectangle(QQuickItem *parent)
@@ -25,6 +26,7 @@ void ResizeRectangle::componentComplete()
     m_handleComponent = new QQmlComponent(engine, QUrl(QStringLiteral("qrc:/BasicResizeHandle.qml")));
 
     auto handleItem = qobject_cast<QQuickItem *>(m_handleComponent->create());
+    qDebug() << handleItem;
     m_handleBottomLeft = qobject_cast<ResizeHandle *>(handleItem);
     m_handleBottomLeft->setParent(this);
     m_handleBottomLeft->setParentItem(this);

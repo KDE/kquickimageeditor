@@ -5,7 +5,6 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 -->
 <RCC>
   <qresource prefix="/">
-    <file alias="BasicResizeHandle.qml">qrc/controls/BasicResizeHandle.qml</file>
-    <file alias="qmldir">qrc/qmldir</file>
+    <file alias="BasicResizeHandle.qml">controls/BasicResizeHandle.qml</file>
   </qresource>
 </RCC>
