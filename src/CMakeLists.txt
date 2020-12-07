@@ -33,12 +33,6 @@ add_library(
     ${sources} ${pluginData}
 )
 
-target_compile_options(
-    kquickimageeditorplugin
-    PRIVATE
-        -Werror
-)
-
 target_link_libraries(
     kquickimageeditorplugin
     PRIVATE
