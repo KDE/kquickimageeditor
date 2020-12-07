@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include <QQmlEngine>
+#include <QResource>
 
 #include "kquickimageeditor_plugin.h"
 
