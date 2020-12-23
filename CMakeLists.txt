@@ -47,7 +47,7 @@ ecm_setup_version(${PROJECT_VERSION}
 )
 
 
-find_package(Qt5 COMPONENTS Core Quick REQUIRED)
+find_package(Qt5 ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
 
 add_subdirectory(src)
 
