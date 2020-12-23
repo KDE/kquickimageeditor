@@ -14,7 +14,7 @@
 
 void KQuickImageEditorPlugin::registerTypes(const char *uri)
 {
-#if defined(Q_OS_ANDROID) && QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+#if defined(Q_OS_ANDROID)
     QResource::registerResource(QStringLiteral("assets:/android_rcc_bundle.rcc"));
 #endif
 
