@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-include_directories(code)
-
 ecm_create_qm_loader(kquickimageeditor_QM_LOADER libkquickimageeditorplugin_qt)
 
 set(
