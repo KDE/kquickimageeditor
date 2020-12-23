@@ -4,11 +4,10 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-set(KF5_VERSION "5.70.0") # handled by release scripts
-set(KF5_DEP_VERSION "5.70.0") # handled by release scripts
+set(KF5_VERSION "5.70.0")
 set(REQUIRED_QT_VERSION 5.12.0)
 
-project(KQuickImageEditor LANGUAGES CXX VERSION ${KF5_VERSION})
+project(KQuickImageEditor LANGUAGES CXX VERSION 0.1.0)
 
 find_package(ECM ${KF5_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
@@ -40,17 +39,13 @@ install(FILES
     COMPONENT Devel
 )
 
-install(EXPORT KQuickImageEditorTargets
-    DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
-    FILE KQuickImageEditorTargets.cmake
-)
-
-ecm_setup_version(${KF5_VERSION}
+ecm_setup_version(${PROJECT_VERSION}
     VARIABLE_PREFIX KQUICKIMAGEEDITOR
     VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_version.h"
     PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
     SOVERSION 1
 )
+
 
 find_package(Qt5 COMPONENTS Core Quick REQUIRED)
 
