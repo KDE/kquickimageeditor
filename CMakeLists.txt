@@ -39,11 +39,6 @@ install(FILES
     COMPONENT Devel
 )
 
-install(EXPORT KQuickImageEditorTargets
-    DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
-    FILE KQuickImageEditorTargets.cmake
-)
-
 ecm_setup_version(${PROJECT_VERSION}
     VARIABLE_PREFIX KQUICKIMAGEEDITOR
     VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_version.h"

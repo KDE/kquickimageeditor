@@ -47,12 +47,6 @@ target_link_libraries(
         Qt5::Qml
 )
 
-install(TARGETS kquickimageeditorplugin
-        EXPORT KQuickImageEditorTargets
-        ${KF5_INSTALL_TARGETS_DEFAULT_ARGS})
-
-set_target_properties(kquickimageeditorplugin PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${KQUICKIMAGEEDITOR_SOVERSION} OUTPUT_NAME kquickimageeditorplugin)
-
 if (BUILD_SHARED_LIBS)
     add_custom_target(copy_to_bin ALL
         COMMAND ${CMAKE_COMMAND} -E
