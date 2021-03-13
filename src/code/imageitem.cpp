@@ -9,6 +9,7 @@
 #include "imageitem.h"
 
 #include <QPainter>
+#include <QDebug>
 
 
 ImageItem::ImageItem(QQuickItem *parent)
@@ -140,6 +141,15 @@ int ImageItem::verticalPadding() const
     }
 
     return (height() - m_paintedRect.height()) / 2;
+}
+
+int ImageItem::horizontalPadding() const
+{
+    if (m_image.isNull()) {
+        return 0;
+    }
+
+    return (width() - m_paintedRect.width()) / 2;
 }
 
 void ImageItem::updatePaintedRect()

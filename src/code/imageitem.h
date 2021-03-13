@@ -21,6 +21,7 @@ class ImageItem : public QQuickPaintedItem
     Q_PROPERTY(int paintedWidth READ paintedWidth NOTIFY paintedWidthChanged)
     Q_PROPERTY(int paintedHeight READ paintedHeight NOTIFY paintedHeightChanged)
     Q_PROPERTY(int verticalPadding READ verticalPadding NOTIFY verticalPaddingChanged)
+    Q_PROPERTY(int horizontalPadding READ horizontalPadding NOTIFY horizontalPaddingChanged)
     Q_PROPERTY(FillMode fillMode READ fillMode WRITE setFillMode NOTIFY fillModeChanged)
     Q_PROPERTY(bool null READ isNull NOTIFY nullChanged)
 
@@ -51,6 +52,7 @@ public:
     int paintedWidth() const;
     int paintedHeight() const;
     int verticalPadding() const;
+    int horizontalPadding() const;
 
     FillMode fillMode() const;
     void setFillMode(FillMode mode);
@@ -68,6 +70,7 @@ Q_SIGNALS:
     void paintedWidthChanged();
     void paintedHeightChanged();
     void verticalPaddingChanged();
+    void horizontalPaddingChanged();
 
 protected:
     void geometryChanged(const QRectF & newGeometry, const QRectF & oldGeometry) override;

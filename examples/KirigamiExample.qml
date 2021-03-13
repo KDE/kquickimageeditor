@@ -135,7 +135,19 @@ Kirigami.ApplicationWindow {
                         Kirigami.Action {
                             iconName: rootEditorView.resizing ? "dialog-cancel" : "transform-crop"
                             text: rootEditorView.resizing ? i18n("Cancel") : i18nc("@action:button Crop an image", "Crop");
-                            onTriggered: rootEditorView.resizing = !rootEditorView.resizing;
+                            onTriggered: {
+                                console.log(editImage.verticalPadding);
+                                console.log(editImage.horizontalPadding);
+                                resizeRectangle.width = editImage.paintedWidth
+                                resizeRectangle.height = editImage.paintedHeight
+                                resizeRectangle.x = 0
+                                resizeRectangle.y = editImage.verticalPadding
+                                resizeRectangle.insideX = 100
+                                resizeRectangle.insideY = 100
+                                resizeRectangle.insideWidth = 100
+                                resizeRectangle.insideHeight = 100
+                                rootEditorView.resizing = !rootEditorView.resizing;
+                            }
                         },
                         Kirigami.Action {
                             iconName: "dialog-ok"
