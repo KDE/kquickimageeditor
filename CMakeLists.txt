@@ -35,7 +35,6 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
     DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
-    COMPONENT Devel
 )
 
 ecm_setup_version(${PROJECT_VERSION}

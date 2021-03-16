@@ -14,19 +14,14 @@ set(
     code/imageitem.cpp
     code/imagedocument.cpp
     resources.qrc
-    ${kquickimageeditor_QM_LOADER}
-)
-set(
-    pluginData
-
     controls/qmldir
+    ${kquickimageeditor_QM_LOADER}
 )
 
 add_library(
     kquickimageeditorplugin
     SHARED
-
-    ${sources} ${pluginData}
+    ${sources}
 )
 
 target_link_libraries(
