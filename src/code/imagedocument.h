@@ -6,9 +6,9 @@
 
 #pragma once
 
+#include <QImage>
 #include <QObject>
 #include <QStack>
-#include <QImage>
 #include <QUrl>
 
 #include "commands/undocommand.h"

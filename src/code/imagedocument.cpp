@@ -6,27 +6,26 @@
 
 #include "imagedocument.h"
 
-#include "commands/undocommand.h"
 #include "commands/cropcommand.h"
 #include "commands/mirrorcommand.h"
 #include "commands/rotatecommand.h"
+#include "commands/undocommand.h"
 
-#include <QUrl>
-#include <QString>
 #include <QDebug>
 #include <QFile>
 #include <QImage>
+#include <QString>
+#include <QUrl>
 
 ImageDocument::ImageDocument(QObject *parent)
     : QObject(parent)
 {
-    connect(this, &ImageDocument::pathChanged,
-            this, [this] (const QUrl &url) {
-                m_image = QImage(url.isLocalFile() ? url.toLocalFile() : url.toString());
-                m_edited = false;
-                Q_EMIT editedChanged();
-                Q_EMIT imageChanged();
-            });
+    connect(this, &ImageDocument::pathChanged, this, [this](const QUrl &url) {
+        m_image = QImage(url.isLocalFile() ? url.toLocalFile() : url.toString());
+        m_edited = false;
+        Q_EMIT editedChanged();
+        Q_EMIT imageChanged();
+    });
 }
 
 void ImageDocument::cancel()
@@ -106,7 +105,7 @@ bool ImageDocument::save()
     return m_image.save(m_path.isLocalFile() ? m_path.toLocalFile() : m_path.toString());
 }
 
-bool ImageDocument::saveAs(const QUrl& location)
+bool ImageDocument::saveAs(const QUrl &location)
 {
     return m_image.save(location.isLocalFile() ? location.toLocalFile() : location.toString());
 }

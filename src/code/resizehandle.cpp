@@ -15,8 +15,8 @@ ResizeHandle::ResizeHandle(QQuickItem *parent)
     : QQuickItem(parent)
 {
     setAcceptedMouseButtons(Qt::LeftButton);
-    
-    auto syncCursor = [this] () {
+
+    auto syncCursor = [this]() {
         switch (m_resizeCorner) {
         case Left:
         case Right:
@@ -36,10 +36,9 @@ ResizeHandle::ResizeHandle(QQuickItem *parent)
             setCursor(Qt::SizeBDiagCursor);
         }
     };
-    
+
     syncCursor();
     connect(this, &ResizeHandle::resizeCornerChanged, this, syncCursor);
-    
 }
 
 QQuickItem *ResizeHandle::rectangle() const
@@ -63,12 +62,11 @@ void ResizeHandle::setRectangle(QQuickItem *rectangle)
     }
     m_rectangle = qobject_cast<ResizeRectangle *>(rectangle);
     Q_EMIT rectangleChanged();
-
 }
 
 bool ResizeHandle::resizeBlocked() const
 {
-    return false; //m_resizeWidthBlocked || m_resizeHeightBlocked;
+    return false; // m_resizeWidthBlocked || m_resizeHeightBlocked;
 }
 
 bool ResizeHandle::resizeLeft() const
@@ -99,10 +97,9 @@ void ResizeHandle::setResizeBlocked(bool width, bool height)
 
     m_resizeWidthBlocked = width;
     m_resizeHeightBlocked = height;
-    
+
     Q_EMIT resizeBlockedChanged();
 }
-
 
 void ResizeHandle::mousePressEvent(QMouseEvent *event)
 {
@@ -114,11 +111,10 @@ void ResizeHandle::mousePressEvent(QMouseEvent *event)
 
 void ResizeHandle::mouseMoveEvent(QMouseEvent *event)
 {
-
     const QPointF difference = m_mouseDownPosition - event->windowPos();
-    
+
     const QSizeF minimumSize = QSize(20, 20);
-    
+
     // Horizontal resize
     if (resizeLeft()) {
         const qreal width = qMax(minimumSize.width(), m_mouseDownGeometry.width() + difference.x());
@@ -141,14 +137,12 @@ void ResizeHandle::mouseMoveEvent(QMouseEvent *event)
 
         m_rectangle->setInsideY(y);
         m_rectangle->setInsideHeight(height);
-        setResizeBlocked(m_resizeWidthBlocked,
-                            m_mouseDownGeometry.height() + difference.y() < minimumSize.height());
+        setResizeBlocked(m_resizeWidthBlocked, m_mouseDownGeometry.height() + difference.y() < minimumSize.height());
     } else if (resizeBottom()) {
         const qreal height = qMax(minimumSize.height(), m_mouseDownGeometry.height() - difference.y());
 
         m_rectangle->setInsideHeight(qMax(height, minimumSize.height()));
-        setResizeBlocked(m_resizeWidthBlocked,
-                            m_mouseDownGeometry.height() - difference.y() < minimumSize.height());
+        setResizeBlocked(m_resizeWidthBlocked, m_mouseDownGeometry.height() - difference.y() < minimumSize.height());
     }
 
     event->accept();

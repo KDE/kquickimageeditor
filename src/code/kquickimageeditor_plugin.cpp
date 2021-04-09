@@ -7,10 +7,10 @@
 
 #include "kquickimageeditor_plugin.h"
 
+#include "imagedocument.h"
+#include "imageitem.h"
 #include "resizehandle.h"
 #include "resizerectangle.h"
-#include "imageitem.h"
-#include "imagedocument.h"
 
 void KQuickImageEditorPlugin::registerTypes(const char *uri)
 {

@@ -26,7 +26,7 @@ public:
     virtual QImage redo(QImage image) override;
 
     virtual QImage undo(QImage image) override;
-    
+
 private:
     QTransform m_tranform;
 };

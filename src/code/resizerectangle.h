@@ -8,22 +8,22 @@
 
 #include "resizehandle.h"
 
-#include <QQuickItem>
 #include <QQmlComponent>
+#include <QQuickItem>
 
 class ResizeRectangle : public QQuickItem
 {
     Q_OBJECT
-    
+
     Q_PROPERTY(qreal insideX READ insideX WRITE setInsideX NOTIFY insideXChanged)
     Q_PROPERTY(qreal insideY READ insideY WRITE setInsideY NOTIFY insideYChanged)
     Q_PROPERTY(qreal insideWidth READ insideWidth WRITE setInsideWidth NOTIFY insideWidthChanged)
     Q_PROPERTY(qreal insideHeight READ insideHeight WRITE setInsideHeight NOTIFY insideHeightChanged)
-    
+
 public:
     ResizeRectangle(QQuickItem *parent = nullptr);
     ~ResizeRectangle() = default;
-    
+
     qreal insideX() const;
     void setInsideX(const qreal x);
     qreal insideY() const;
@@ -32,16 +32,16 @@ public:
     void setInsideWidth(const qreal width);
     qreal insideHeight() const;
     void setInsideHeight(const qreal height);
-    
+
     virtual QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) override;
-    
+
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
-    void mousePressEvent(QMouseEvent * event) override;
+    void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     virtual void componentComplete() override;
-    
+
 Q_SIGNALS:
     /// Double click event signal
     void acceptSize();
@@ -50,7 +50,7 @@ Q_SIGNALS:
     void insideWidthChanged();
     void insideHeightChanged();
     void handleComponentChanged();
-    
+
 private:
     void updateHandles();
 

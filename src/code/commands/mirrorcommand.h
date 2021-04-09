@@ -23,7 +23,7 @@ public:
     virtual QImage redo(QImage image) override;
 
     virtual QImage undo(QImage image) override;
-    
+
 private:
     bool m_horizontal;
     bool m_vertical;

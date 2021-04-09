@@ -11,7 +11,7 @@
 
 class ResizeRectangle;
 
-class ResizeHandle: public QQuickItem
+class ResizeHandle : public QQuickItem
 {
     Q_OBJECT
     Q_PROPERTY(bool resizeBlocked READ resizeBlocked NOTIFY resizeBlockedChanged)
@@ -37,7 +37,7 @@ public:
     void setRectangle(QQuickItem *rectangle);
 
     bool resizeBlocked() const;
-    
+
     void setResizeCorner(Corner corner);
 
 protected:

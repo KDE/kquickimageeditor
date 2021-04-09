@@ -13,6 +13,7 @@ class KQuickImageEditorPlugin : public QQmlExtensionPlugin
     Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
 public:
     void registerTypes(const char *uri) override;
+
 private:
     QString resolveFilePath(const QString &path) const
     {

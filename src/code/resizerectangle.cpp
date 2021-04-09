@@ -6,11 +6,10 @@
 
 #include "resizerectangle.h"
 
+#include <QDebug>
+#include <QSGFlatColorMaterial>
 #include <QSGGeometry>
 #include <QSGGeometryNode>
-#include <QSGFlatColorMaterial>
-#include <QDebug>
-
 
 ResizeRectangle::ResizeRectangle(QQuickItem *parent)
     : QQuickItem(parent)
@@ -141,7 +140,7 @@ void ResizeRectangle::setInsideHeight(const qreal height)
     update();
 }
 
-QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdatePaintNodeData *)
+QSGNode *ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdatePaintNodeData *)
 {
     QSGGeometryNode *node = nullptr;
     QSGGeometry *geometry = nullptr;
@@ -150,8 +149,7 @@ QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdateP
     const int indexCount = 8 * 3;
     if (!oldNode) {
         node = new QSGGeometryNode;
-        geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-                                   vertexCount, indexCount);
+        geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), vertexCount, indexCount);
         geometry->setIndexDataPattern(QSGGeometry::StaticPattern);
         geometry->setDrawingMode(GL_TRIANGLES);
         node->setGeometry(geometry);
@@ -183,7 +181,7 @@ QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdateP
     points[10].set(m_insideX + m_insideWidth, m_insideY + m_insideHeight);
     points[11].set(m_insideX, m_insideY + m_insideHeight);
 
-    quint16* indices = geometry->indexDataAsUShort();
+    quint16 *indices = geometry->indexDataAsUShort();
     // left
     indices[0 + 0] = 0;
     indices[0 + 1] = 1;
@@ -226,7 +224,6 @@ QSGNode * ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdateP
     return node;
 }
 
-
 void ResizeRectangle::mouseReleaseEvent(QMouseEvent *event)
 {
     m_mouseClickedOnRectangle = false;
@@ -237,8 +234,8 @@ void ResizeRectangle::mousePressEvent(QMouseEvent *event)
 {
     m_mouseDownPosition = event->pos();
     m_mouseDownGeometry = QPointF(m_insideX, m_insideY);
-    if (m_mouseDownPosition.x() >= m_insideX  && m_mouseDownPosition.x() <= m_insideX + m_insideWidth
-        && m_mouseDownPosition.y() >= m_insideY && m_mouseDownPosition.y() <= m_insideY + m_insideHeight) {
+    if (m_mouseDownPosition.x() >= m_insideX && m_mouseDownPosition.x() <= m_insideX + m_insideWidth && m_mouseDownPosition.y() >= m_insideY
+        && m_mouseDownPosition.y() <= m_insideY + m_insideHeight) {
         m_mouseClickedOnRectangle = true;
     }
     event->accept();

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <QQuickPaintedItem>
 #include <QImage>
+#include <QQuickPaintedItem>
 
 class ImageItem : public QQuickPaintedItem
 {
@@ -32,11 +32,11 @@ public:
         PreserveAspectCrop, // the image is scaled uniformly to fill, cropping if necessary
         Tile, // the image is duplicated horizontally and vertically
         TileVertically, // the image is stretched horizontally and tiled vertically
-        TileHorizontally //the image is stretched vertically and tiled horizontally
+        TileHorizontally // the image is stretched vertically and tiled horizontally
     };
     Q_ENUM(FillMode)
 
-    explicit ImageItem(QQuickItem *parent=nullptr);
+    explicit ImageItem(QQuickItem *parent = nullptr);
     ~ImageItem() override = default;
 
     void setImage(const QImage &image);
@@ -73,7 +73,7 @@ Q_SIGNALS:
     void horizontalPaddingChanged();
 
 protected:
-    void geometryChanged(const QRectF & newGeometry, const QRectF & oldGeometry) override;
+    void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry) override;
 
 private:
     QImage m_image;
@@ -83,5 +83,4 @@ private:
 
 private Q_SLOTS:
     void updatePaintedRect();
-
 };

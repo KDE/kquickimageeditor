@@ -15,12 +15,12 @@ class UndoCommand
 {
 public:
     virtual ~UndoCommand() = 0;
-    
+
     /**
      * Applies the change to the document.
      */
     virtual QImage redo(QImage image) = 0;
-    
+
     /**
      * Revert a change to the document.
      */
