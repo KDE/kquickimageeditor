@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Carl Schwan <carl@carlschwan.eu>
+//
+// SPDX-License-Identifier: BSD-2-Clause
 import QtQuick.tooling 1.2
 
 // This file describes the plugin-supplied types contained in the library.
