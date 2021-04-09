@@ -61,9 +61,9 @@ private:
     QPointF m_mouseDownPosition;
     QPointF m_mouseDownGeometry;
     bool m_mouseClickedOnRectangle = false;
-    QQmlComponent *m_handleComponent;
-    ResizeHandle *m_handleBottomLeft;
-    ResizeHandle *m_handleBottomRight;
-    ResizeHandle *m_handleTopLeft;
-    ResizeHandle *m_handleTopRight;
+    QQmlComponent *m_handleComponent = nullptr;
+    ResizeHandle *m_handleBottomLeft = nullptr;
+    ResizeHandle *m_handleBottomRight = nullptr;
+    ResizeHandle *m_handleTopLeft = nullptr;
+    ResizeHandle *m_handleTopRight = nullptr;
 };

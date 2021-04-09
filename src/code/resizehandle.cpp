@@ -161,5 +161,3 @@ void ResizeHandle::mouseReleaseEvent(QMouseEvent *event)
     setResizeBlocked(false, false);
     Q_EMIT resizeBlockedChanged();
 }
-
-#include "moc_resizehandle.cpp"
