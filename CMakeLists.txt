@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-set(KF5_VERSION "5.70.0")
+set(KF5_VERSION "5.79.0")
 set(REQUIRED_QT_VERSION 5.15.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION 0.1.0)
@@ -18,9 +18,10 @@ include(KDECMakeSettings)
 include(KDECompilerSettings)
 include(FeatureSummary)
 include(ECMSetupVersion)
+include(KDEClangFormat)
+include(KDEGitCommitHooks)
 include(ECMGenerateQmlTypes)
 include(CMakePackageConfigHelpers)
-#include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
 include(KDEPackageAppTemplates)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
@@ -52,3 +53,8 @@ find_package(Qt5 ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
 add_subdirectory(src)
 
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+# add clang-format target for all our real source files
+file(GLOB_RECURSE ALL_CLANG_FORMAT_SOURCE_FILES src/*.cpp src/*.h)
+kde_clang_format(${ALL_CLANG_FORMAT_SOURCE_FILES})
+kde_configure_git_pre_commit_hook(CHECKS CLANG_FORMAT)
