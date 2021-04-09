@@ -80,8 +80,8 @@ public:
     Q_INVOKABLE void rotate(int angle);
 
     /**
-     * Mirrror the image.
-     * @param horizonal Mirror the image horizontally.
+     * Mirror the image.
+     * @param horizontal Mirror the image horizontally.
      * @param vertical Mirror the image vertically.
      */
     Q_INVOKABLE void mirror(bool horizontal, bool vertical);
@@ -107,7 +107,7 @@ public:
 
     /**
      * Save current edited image in place. This is a destructive operation and can't be reverted.
-     * @return true iff the file saving operattion was successful.
+     * @return true iff the file saving operation was successful.
      */
     Q_INVOKABLE bool save();
 

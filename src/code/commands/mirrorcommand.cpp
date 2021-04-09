@@ -6,8 +6,8 @@
 
 #include "mirrorcommand.h"
 
-MirrorCommand::MirrorCommand(bool horizonal, bool vertical)
-    : m_horizontal(horizonal)
+MirrorCommand::MirrorCommand(bool horizontal, bool vertical)
+    : m_horizontal(horizontal)
     , m_vertical(vertical)
 {
 }

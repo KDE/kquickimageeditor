@@ -17,7 +17,7 @@
 class MirrorCommand : public UndoCommand
 {
 public:
-    MirrorCommand(bool horizonal, bool vertical);
+    MirrorCommand(bool horizontal, bool vertical);
     ~MirrorCommand() override = default;
 
     virtual QImage redo(QImage image) override;
