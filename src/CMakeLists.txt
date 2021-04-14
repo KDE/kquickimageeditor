@@ -19,7 +19,7 @@ set(
 )
 
 ecm_generate_qmltypes(org.kde.kquickimageeditor 1.0
-                      DESTINATION <${KDE_INSTALL_QMLDIR}/org/kde/kquickimageeditor>)
+                      DESTINATION ${KDE_INSTALL_QMLDIR}/org/kde/kquickimageeditor)
 
 add_library(
     kquickimageeditorplugin
