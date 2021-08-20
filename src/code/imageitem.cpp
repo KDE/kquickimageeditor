@@ -199,6 +199,7 @@ void ImageItem::updatePaintedRect()
         Q_EMIT paintedHeightChanged();
         Q_EMIT paintedWidthChanged();
         Q_EMIT verticalPaddingChanged();
+        Q_EMIT horizontalPaddingChanged();
     }
 }
 
