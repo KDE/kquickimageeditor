@@ -81,8 +81,9 @@ qreal ResizeRectangle::insideX() const
     return m_insideX;
 }
 
-void ResizeRectangle::setInsideX(const qreal x)
+void ResizeRectangle::setInsideX(qreal x)
 {
+    x = qBound(0.0, x, this->width() - m_insideWidth);
     if (m_insideX == x) {
         return;
     }
@@ -97,8 +98,9 @@ qreal ResizeRectangle::insideY() const
     return m_insideY;
 }
 
-void ResizeRectangle::setInsideY(const qreal y)
+void ResizeRectangle::setInsideY(qreal y)
 {
+    y = qBound(0.0, y, this->height() - m_insideHeight);
     if (m_insideY == y) {
         return;
     }
@@ -113,8 +115,9 @@ qreal ResizeRectangle::insideWidth() const
     return m_insideWidth;
 }
 
-void ResizeRectangle::setInsideWidth(const qreal width)
+void ResizeRectangle::setInsideWidth(qreal width)
 {
+    width = qMin(width, this->width());
     if (m_insideWidth == width) {
         return;
     }
@@ -129,8 +132,9 @@ qreal ResizeRectangle::insideHeight() const
     return m_insideHeight;
 }
 
-void ResizeRectangle::setInsideHeight(const qreal height)
+void ResizeRectangle::setInsideHeight(qreal height)
 {
+    height = qMin(height, this->height());
     if (m_insideHeight == height) {
         return;
     }

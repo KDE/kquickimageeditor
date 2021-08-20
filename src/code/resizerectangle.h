@@ -25,13 +25,13 @@ public:
     ~ResizeRectangle() = default;
 
     qreal insideX() const;
-    void setInsideX(const qreal x);
+    void setInsideX(qreal x);
     qreal insideY() const;
-    void setInsideY(const qreal y);
+    void setInsideY(qreal y);
     qreal insideWidth() const;
-    void setInsideWidth(const qreal width);
+    void setInsideWidth(qreal width);
     qreal insideHeight() const;
-    void setInsideHeight(const qreal height);
+    void setInsideHeight(qreal height);
 
     virtual QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) override;
 
