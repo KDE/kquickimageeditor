@@ -23,4 +23,9 @@ void KQuickImageEditorPlugin::registerTypes(const char *uri)
     qmlRegisterType<ImageItem>(uri, 1, 0, "ImageItem");
     qmlRegisterType<ImageDocument>(uri, 1, 0, "ImageDocument");
     qmlRegisterType(resolveFileUrl(QStringLiteral("BasicResizeHandle.qml")), uri, 1, 0, "BasicResizeHandle");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("SelectionTool.qml")), uri, 1, 0, "SelectionTool");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("SelectionHandle.qml")), uri, 1, 0, "SelectionHandle");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("SelectionBackground.qml")), uri, 1, 0, "SelectionBackground");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("CropBackground.qml")), uri, 1, 0, "CropBackground");
+    qmlRegisterType(resolveFileUrl(QStringLiteral("RectangleCutout.qml")), uri, 1, 0, "RectangleCutout");
 }
