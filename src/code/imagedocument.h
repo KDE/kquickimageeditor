@@ -96,6 +96,13 @@ public:
     Q_INVOKABLE void crop(int x, int y, int width, int height);
 
     /**
+     * Resize the image.
+     * @param width The width of the new image.
+     * @param height The height of the new image.
+     */
+    Q_INVOKABLE void resize(int width, int height);
+
+    /**
      * Undo the last edit on the images.
      */
     Q_INVOKABLE void undo();

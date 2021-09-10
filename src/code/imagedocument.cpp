@@ -8,6 +8,7 @@
 
 #include "commands/cropcommand.h"
 #include "commands/mirrorcommand.h"
+#include "commands/resizecommand.h"
 #include "commands/rotatecommand.h"
 #include "commands/undocommand.h"
 
@@ -64,6 +65,15 @@ void ImageDocument::undo()
 void ImageDocument::crop(int x, int y, int width, int height)
 {
     const auto command = new CropCommand(QRect(x, y, width, height));
+    m_image = command->redo(m_image);
+    m_undos.append(command);
+    setEdited(true);
+    Q_EMIT imageChanged();
+}
+
+void ImageDocument::resize(int width, int height)
+{
+    const auto command = new ResizeCommand(QSize(width, height));
     m_image = command->redo(m_image);
     m_undos.append(command);
     setEdited(true);

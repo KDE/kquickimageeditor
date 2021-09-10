@@ -6,6 +6,7 @@ set(
     sources
     code/commands/undocommand.cpp
     code/commands/cropcommand.cpp
+    code/commands/resizecommand.cpp
     code/commands/mirrorcommand.cpp
     code/commands/rotatecommand.cpp
     code/kquickimageeditor_plugin.cpp
