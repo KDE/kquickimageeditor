@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.5)
 set(KF5_VERSION "5.79.0")
 set(REQUIRED_QT_VERSION 5.15.0)
 
-project(KQuickImageEditor LANGUAGES CXX VERSION 0.1.0)
+project(KQuickImageEditor LANGUAGES CXX VERSION 0.2.0)
 
 find_package(ECM ${KF5_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
