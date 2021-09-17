@@ -11,6 +11,7 @@
 #include <QQmlComponent>
 #include <QQuickItem>
 
+/// \deprecated
 class ResizeRectangle : public QQuickItem
 {
     Q_OBJECT
