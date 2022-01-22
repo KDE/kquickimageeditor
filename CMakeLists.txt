@@ -32,7 +32,7 @@ configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/KQuickImageEditorConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
     INSTALL_DESTINATION  ${CMAKECONFIG_INSTALL_DIR}
-    PATH_VARS  KF5_INCLUDE_INSTALL_DIR CMAKE_INSTALL_PREFIX
+    PATH_VARS CMAKE_INSTALL_PREFIX
 )
 
 install(FILES
@@ -50,7 +50,7 @@ ecm_setup_version(${PROJECT_VERSION}
 )
 
 
-find_package(Qt5 ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
+find_package(Qt${QT_MAJOR_VERSION} ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
 
 add_subdirectory(src)
 

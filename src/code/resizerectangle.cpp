@@ -155,7 +155,7 @@ QSGNode *ResizeRectangle::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdatePa
         node = new QSGGeometryNode;
         geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), vertexCount, indexCount);
         geometry->setIndexDataPattern(QSGGeometry::StaticPattern);
-        geometry->setDrawingMode(GL_TRIANGLES);
+        geometry->setDrawingMode(QSGGeometry::DrawTriangles);
         node->setGeometry(geometry);
         node->setFlag(QSGNode::OwnsGeometry);
 

@@ -29,9 +29,9 @@ ecm_target_qml_sources(kquickimageeditorplugin SOURCES
 
 target_link_libraries(kquickimageeditorplugin
     PRIVATE
-    Qt5::Core
-    Qt5::Quick
-    Qt5::Qml
+    Qt${QT_MAJOR_VERSION}::Core
+    Qt${QT_MAJOR_VERSION}::Quick
+    Qt${QT_MAJOR_VERSION}::Qml
 )
 
 ecm_finalize_qml_module(kquickimageeditorplugin DESTINATION ${KDE_INSTALL_QMLDIR})
