@@ -4,8 +4,9 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-set(KF5_VERSION "5.79.0")
+set(KF5_VERSION "5.91.0")
 set(REQUIRED_QT_VERSION 5.15.0)
+set(KDE_COMPILERSETTINGS_LEVEL 5.84.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION 0.2.0)
 
@@ -23,6 +24,7 @@ include(KDEGitCommitHooks)
 include(ECMGenerateQmlTypes)
 include(CMakePackageConfigHelpers)
 include(KDEPackageAppTemplates)
+include(ECMQmlModule)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
 
