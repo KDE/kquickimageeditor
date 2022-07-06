@@ -43,20 +43,6 @@ void ImageItem::resetImage()
     setImage(QImage());
 }
 
-void ImageItem::setSmooth(const bool smooth)
-{
-    if (smooth == m_smooth) {
-        return;
-    }
-    m_smooth = smooth;
-    update();
-}
-
-bool ImageItem::smooth() const
-{
-    return m_smooth;
-}
-
 int ImageItem::nativeWidth() const
 {
     return m_image.size().width() / m_image.devicePixelRatio();
@@ -90,8 +76,8 @@ void ImageItem::paint(QPainter *painter)
         return;
     }
     painter->save();
-    painter->setRenderHint(QPainter::Antialiasing, m_smooth);
-    painter->setRenderHint(QPainter::SmoothPixmapTransform, m_smooth);
+    painter->setRenderHint(QPainter::Antialiasing, smooth());
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, smooth());
 
     if (m_fillMode == TileVertically) {
         painter->scale(width() / (qreal)m_image.width(), 1);
