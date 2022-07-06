@@ -36,7 +36,7 @@ Kirigami.ApplicationWindow {
 
             signal imageEdited();
 
-            title: i18n("Edit")
+            title: "Edit"
             leftPadding: 0
             rightPadding: 0
             topPadding: 0
@@ -54,12 +54,12 @@ Kirigami.ApplicationWindow {
                 main: Kirigami.Action {
                     id: saveAction
                     visible: imageDoc.edited
-                    text: i18nc("@action:button Save image modification", "Save")
+                    text: "Save"
                     iconName: "document-save"
                     onTriggered: {
                         if (!imageDoc.save()) {
                             msg.type = Kirigami.MessageType.Error
-                            msg.text = i18n("Unable to save file. Check if you have the correct permission to edit this file.")
+                            msg.text = "Unable to save file. Check if you have the correct permission to edit this file."
                             msg.visible = true;
                         }
                         rootEditorView.imageEdited();
@@ -68,7 +68,7 @@ Kirigami.ApplicationWindow {
                 }
                 left: Kirigami.Action {
                     id: undoAction
-                    text: i18nc("@action:button Undo modification", "Undo")
+                    text: "Undo"
                     iconName: "edit-undo"
                     onTriggered: {
                         if (imageDoc.edited) {
@@ -80,38 +80,36 @@ Kirigami.ApplicationWindow {
                 contextualActions: [
                     Kirigami.Action {
                         iconName: rootEditorView.resizing ? "dialog-ok" : "transform-crop"
-                        text: rootEditorView.resizing ?
-                            i18nc("@action:button Accept crop for an image", "Accept")
-                            : i18nc("@action:button Crop an image", "Crop");
+                        text: rootEditorView.resizing ? "Accept" : "Crop"
                         onTriggered: rootEditorView.resizing = !rootEditorView.resizing;
                     },
                     Kirigami.Action {
                         iconName: "dialog-cancel"
                         visible: rootEditorView.resizing
-                        text: i18n("Cancel")
+                        text: "Cancel"
                         onTriggered: rootEditorView.resizing = !rootEditorView.resizing
                     },
                     Kirigami.Action {
                         iconName: "object-rotate-left"
-                        text: i18nc("@action:button Rotate an image to the left", "Rotate left");
+                        text: "Rotate left";
                         onTriggered: imageDoc.rotate(-90);
                         visible: !rootEditorView.resizing
                     },
                     Kirigami.Action {
                         iconName: "object-rotate-right"
-                        text: i18nc("@action:button Rotate an image to the right", "Rotate right");
+                        text: "@action:button Rotate an image to the right", "Rotate right";
                         onTriggered: imageDoc.rotate(90);
                         visible: !rootEditorView.resizing
                     },
                     Kirigami.Action {
                         iconName: "object-flip-vertical"
-                        text: i18nc("@action:button Mirror an image vertically", "Flip");
+                        text: "Flip"
                         onTriggered: imageDoc.mirror(false, true);
                         visible: !rootEditorView.resizing
                     },
                     Kirigami.Action {
                         iconName: "object-flip-horizontal"
-                        text: i18nc("@action:button Mirror an image horizontally", "Mirror");
+                        text: "Mirror"
                         onTriggered: imageDoc.mirror(true, false);
                         visible: !rootEditorView.resizing
                     },
@@ -125,7 +123,7 @@ Kirigami.ApplicationWindow {
                     Kirigami.Action {
                         visible: rootEditorView.resizing
                         displayComponent: QQC2.Label {
-                            text: i18nc("@title:group for crop area size spinboxes", "Size:")
+                            text: "Size:"
                         }
                     },
                     Kirigami.Action {
@@ -157,7 +155,7 @@ Kirigami.ApplicationWindow {
                     Kirigami.Action {
                         visible: rootEditorView.resizing
                         displayComponent: QQC2.Label {
-                            text: i18nc("@title:group for crop area position spinboxes", "Position:")
+                            text: "Position:"
                         }
                     },
                     Kirigami.Action {
@@ -222,7 +220,7 @@ Kirigami.ApplicationWindow {
 
             FileDialog {
                 id: fileDialog
-                title: i18n("Save As")
+                title: "Save As"
                 folder: shortcuts.home
                 selectMultiple: false
                 selectExisting: false
@@ -230,11 +228,11 @@ Kirigami.ApplicationWindow {
                     if (imageDoc.saveAs(fileDialog.fileUrl)) {;
                         imagePath = fileDialog.fileUrl;
                         msg.type = Kirigami.MessageType.Information
-                        msg.text = i18n("You are now editing a new file.")
+                        msg.text = "You are now editing a new file."
                         msg.visible = true;
                     } else {
                         msg.type = Kirigami.MessageType.Error
-                        msg.text = i18n("Unable to save file. Check if you have the correct permission to edit this file.")
+                        msg.text = "Unable to save file. Check if you have the correct permission to edit this file."
                         msg.visible = true;
                     }
                     fileDialog.close()
