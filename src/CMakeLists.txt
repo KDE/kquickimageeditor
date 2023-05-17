@@ -2,6 +2,14 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
+if(QT_MAJOR_VERSION STREQUAL "5")
+	set(QML_QTGRAPHICAL_EFFECTS_IMPORT "QtGraphicalEffects 1.15")
+else()
+	set(QML_QTGRAPHICAL_EFFECTS_IMPORT "Qt5Compat.GraphicalEffects")
+endif()
+
+configure_file(controls/SelectionHandle.qml ${CMAKE_CURRENT_BINARY_DIR}/controls/SelectionHandle.qml)
+
 ecm_add_qml_module(kquickimageeditorplugin URI "org.kde.kquickimageeditor" VERSION 1.0)
 
 target_sources(kquickimageeditorplugin PRIVATE
@@ -21,7 +29,7 @@ target_sources(kquickimageeditorplugin PRIVATE
 ecm_target_qml_sources(kquickimageeditorplugin SOURCES
     controls/BasicResizeHandle.qml
     controls/SelectionTool.qml
-    controls/SelectionHandle.qml
+    ${CMAKE_CURRENT_BINARY_DIR}/controls/SelectionHandle.qml
     controls/SelectionBackground.qml
     controls/CropBackground.qml
     controls/RectangleCutout.qml

@@ -3,7 +3,7 @@
  */
 
 import QtQuick 2.15
-import QtGraphicalEffects 1.15
+import @QML_QTGRAPHICAL_EFFECTS_IMPORT@
 import org.kde.kirigami 2.15 as Kirigami
 
 MouseArea {
