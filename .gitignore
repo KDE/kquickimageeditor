@@ -5,7 +5,7 @@
 _build
 *.kate-swp
 *.swp
-build
+build*/
 /.clang-format
 /compile_commands.json
 .clangd
