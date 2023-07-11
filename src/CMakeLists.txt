@@ -14,15 +14,25 @@ ecm_add_qml_module(kquickimageeditorplugin URI "org.kde.kquickimageeditor" VERSI
 
 target_sources(kquickimageeditorplugin PRIVATE
     code/commands/undocommand.cpp
+    code/commands/undocommand.h
     code/commands/cropcommand.cpp
+    code/commands/cropcommand.h
     code/commands/resizecommand.cpp
+    code/commands/resizecommand.h
     code/commands/mirrorcommand.cpp
+    code/commands/mirrorcommand.h
     code/commands/rotatecommand.cpp
+    code/commands/rotatecommand.h
     code/kquickimageeditor_plugin.cpp
+    code/kquickimageeditor_plugin.h
     code/resizehandle.cpp
+    code/resizehandle.h
     code/resizerectangle.cpp
+    code/resizerectangle.h
     code/imageitem.cpp
+    code/imageitem.h
     code/imagedocument.cpp
+    code/imagedocument.h
     ${kquickimageeditor_QM_LOADER}
 )
 
