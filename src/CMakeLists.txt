@@ -39,7 +39,7 @@ target_sources(kquickimageeditorplugin PRIVATE
 ecm_target_qml_sources(kquickimageeditorplugin SOURCES
     controls/BasicResizeHandle.qml
     controls/SelectionTool.qml
-    ${CMAKE_CURRENT_BINARY_DIR}/controls/SelectionHandle.qml
+    # ${CMAKE_CURRENT_BINARY_DIR}/controls/SelectionHandle.qml
     controls/SelectionBackground.qml
     controls/CropBackground.qml
     controls/RectangleCutout.qml
