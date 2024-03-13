@@ -3,7 +3,7 @@
  */
 
 import QtQuick 2.15
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 import org.kde.kirigami 2.15 as Kirigami
 
 MouseArea {
@@ -110,11 +110,13 @@ MouseArea {
             height: root.forwardDiagonal || root.backwardDiagonal || root.verticalOnly ? parent.height / 2 : parent.height
         }
     }
-    OpacityMask {
+    MultiEffect {
         anchors.fill: graphics
-        cached: true
-        invert: true
+        maskInverted: true
         source: graphics
-        maskSource: maskSource
+        maskEnabled: true
+        maskSource: ShaderEffectSource {
+            sourceItem: maskSource
+        }
     }
 }
