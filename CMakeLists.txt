@@ -4,13 +4,13 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-set(KF5_VERSION "5.91.0")
-set(REQUIRED_QT_VERSION 5.15.0)
+set(REQUIRED_KF_VERSION 6.0.0)
+set(REQUIRED_QT_VERSION 6.6.0)
 set(KDE_COMPILERSETTINGS_LEVEL 5.84.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION 0.3.0)
 
-find_package(ECM ${KF5_VERSION} NO_MODULE)
+find_package(ECM ${REQUIRED_KF_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
 include(KDEInstallDirs)
@@ -49,7 +49,7 @@ ecm_setup_version(${PROJECT_VERSION}
 )
 
 
-find_package(Qt${QT_MAJOR_VERSION} ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
+find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
 
 add_subdirectory(src)
 

@@ -31,7 +31,7 @@ target_sources(kquickimageeditorplugin PRIVATE
 ecm_target_qml_sources(kquickimageeditorplugin SOURCES
     controls/BasicResizeHandle.qml
     controls/SelectionTool.qml
-    controls/qt${QT_MAJOR_VERSION}/SelectionHandle.qml
+    controls/SelectionHandle.qml
     controls/SelectionBackground.qml
     controls/CropBackground.qml
     controls/RectangleCutout.qml
@@ -39,9 +39,9 @@ ecm_target_qml_sources(kquickimageeditorplugin SOURCES
 
 target_link_libraries(kquickimageeditorplugin
     PRIVATE
-    Qt${QT_MAJOR_VERSION}::Core
-    Qt${QT_MAJOR_VERSION}::Quick
-    Qt${QT_MAJOR_VERSION}::Qml
+    Qt6::Core
+    Qt6::Quick
+    Qt6::Qml
 )
 
 ecm_finalize_qml_module(kquickimageeditorplugin DESTINATION ${KDE_INSTALL_QMLDIR})
