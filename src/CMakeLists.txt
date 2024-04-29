@@ -2,29 +2,27 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-ecm_add_qml_module(kquickimageeditorplugin URI "org.kde.kquickimageeditor" VERSION 1.0)
+ecm_add_qml_module(kquickimageeditorplugin URI "org.kde.kquickimageeditor" VERSION 1.0 GENERATE_PLUGIN_SOURCE DEPENDENCIES "QtQuick")
 
 target_sources(kquickimageeditorplugin PRIVATE
-    code/commands/undocommand.cpp
-    code/commands/undocommand.h
-    code/commands/cropcommand.cpp
-    code/commands/cropcommand.h
-    code/commands/resizecommand.cpp
-    code/commands/resizecommand.h
-    code/commands/mirrorcommand.cpp
-    code/commands/mirrorcommand.h
-    code/commands/rotatecommand.cpp
-    code/commands/rotatecommand.h
-    code/kquickimageeditor_plugin.cpp
-    code/kquickimageeditor_plugin.h
-    code/resizehandle.cpp
-    code/resizehandle.h
-    code/resizerectangle.cpp
-    code/resizerectangle.h
-    code/imageitem.cpp
-    code/imageitem.h
-    code/imagedocument.cpp
-    code/imagedocument.h
+    commands/undocommand.cpp
+    commands/undocommand.h
+    commands/cropcommand.cpp
+    commands/cropcommand.h
+    commands/resizecommand.cpp
+    commands/resizecommand.h
+    commands/mirrorcommand.cpp
+    commands/mirrorcommand.h
+    commands/rotatecommand.cpp
+    commands/rotatecommand.h
+    resizehandle.cpp
+    resizehandle.h
+    resizerectangle.cpp
+    resizerectangle.h
+    imageitem.cpp
+    imageitem.h
+    imagedocument.cpp
+    imagedocument.h
     ${kquickimageeditor_QM_LOADER}
 )
 

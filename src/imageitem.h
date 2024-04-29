@@ -13,6 +13,7 @@
 class ImageItem : public QQuickPaintedItem
 {
     Q_OBJECT
+    QML_ELEMENT
 
     Q_PROPERTY(QImage image READ image WRITE setImage NOTIFY imageChanged RESET resetImage)
     Q_PROPERTY(int nativeWidth READ nativeWidth NOTIFY nativeWidthChanged)

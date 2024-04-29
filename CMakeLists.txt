@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 
 set(REQUIRED_KF_VERSION 6.0.0)
 set(REQUIRED_QT_VERSION 6.6.0)

@@ -10,6 +10,7 @@
 #include <QObject>
 #include <QStack>
 #include <QUrl>
+#include <qqmlregistration.h>
 
 #include "commands/undocommand.h"
 
@@ -39,6 +40,7 @@
 class ImageDocument : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
 
     Q_PROPERTY(QUrl path READ path WRITE setPath NOTIFY pathChanged)
     Q_PROPERTY(QImage image READ image NOTIFY imageChanged)

@@ -15,6 +15,7 @@
 class ResizeRectangle : public QQuickItem
 {
     Q_OBJECT
+    QML_ELEMENT
 
     Q_PROPERTY(qreal insideX READ insideX WRITE setInsideX NOTIFY insideXChanged)
     Q_PROPERTY(qreal insideY READ insideY WRITE setInsideY NOTIFY insideYChanged)
