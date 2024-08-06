@@ -22,9 +22,9 @@ public:
     ResizeCommand(const QSize &resizeSize);
     ~ResizeCommand() override = default;
 
-    virtual QImage redo(QImage image) override;
+    QImage redo(QImage image) override;
 
-    virtual QImage undo(QImage image) override;
+    QImage undo(QImage image) override;
 
 private:
     QImage m_image;

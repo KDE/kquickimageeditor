@@ -31,7 +31,7 @@ public:
     };
     Q_ENUM(Corner)
 
-    ResizeHandle(QQuickItem *parent = nullptr);
+    explicit ResizeHandle(QQuickItem *parent = nullptr);
     ~ResizeHandle() = default;
 
     QQuickItem *rectangle() const;

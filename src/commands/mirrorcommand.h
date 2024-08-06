@@ -20,9 +20,9 @@ public:
     MirrorCommand(bool horizontal, bool vertical);
     ~MirrorCommand() override = default;
 
-    virtual QImage redo(QImage image) override;
+    QImage redo(QImage image) override;
 
-    virtual QImage undo(QImage image) override;
+    QImage undo(QImage image) override;
 
 private:
     bool m_horizontal;

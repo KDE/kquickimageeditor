@@ -23,7 +23,7 @@ class ResizeRectangle : public QQuickItem
     Q_PROPERTY(qreal insideHeight READ insideHeight WRITE setInsideHeight NOTIFY insideHeightChanged)
 
 public:
-    ResizeRectangle(QQuickItem *parent = nullptr);
+    explicit ResizeRectangle(QQuickItem *parent = nullptr);
     ~ResizeRectangle() = default;
 
     qreal insideX() const;
@@ -35,14 +35,14 @@ public:
     qreal insideHeight() const;
     void setInsideHeight(qreal height);
 
-    virtual QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) override;
+    QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) override;
 
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
-    virtual void componentComplete() override;
+    void componentComplete() override;
 
 Q_SIGNALS:
     /// Double click event signal

@@ -23,9 +23,9 @@ public:
     RotateCommand(const QTransform &m_tranform);
     ~RotateCommand() override = default;
 
-    virtual QImage redo(QImage image) override;
+    QImage redo(QImage image) override;
 
-    virtual QImage undo(QImage image) override;
+    QImage undo(QImage image) override;
 
 private:
     QTransform m_tranform;
