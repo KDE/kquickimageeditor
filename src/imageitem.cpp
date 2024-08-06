@@ -200,3 +200,5 @@ void ImageItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeome
 #endif
     updatePaintedRect();
 }
+
+#include "moc_imageitem.cpp"
