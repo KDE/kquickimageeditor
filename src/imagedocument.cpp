@@ -12,10 +12,7 @@
 #include "commands/rotatecommand.h"
 #include "commands/undocommand.h"
 
-#include <QDebug>
-#include <QFile>
 #include <QImage>
-#include <QString>
 #include <QUrl>
 
 ImageDocument::ImageDocument(QObject *parent)

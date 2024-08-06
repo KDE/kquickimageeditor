@@ -9,7 +9,6 @@
 #include "undocommand.h"
 
 #include <QImage>
-#include <QRect>
 
 /**
  * @brief MirrorCommand that mirror an image horizontally or vertically.

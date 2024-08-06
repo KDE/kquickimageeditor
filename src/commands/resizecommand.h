@@ -8,7 +8,6 @@
 #include "undocommand.h"
 
 #include <QImage>
-#include <QRect>
 
 /**
  * @brief ResizeCommand that resizes the current image.

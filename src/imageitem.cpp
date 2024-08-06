@@ -8,7 +8,6 @@
 
 #include "imageitem.h"
 
-#include <QDebug>
 #include <QPainter>
 
 ImageItem::ImageItem(QQuickItem *parent)

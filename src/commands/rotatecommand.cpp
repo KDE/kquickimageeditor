@@ -5,7 +5,6 @@
  */
 
 #include "rotatecommand.h"
-#include <QDebug>
 
 RotateCommand::RotateCommand(const QTransform &tranform)
     : m_tranform(tranform)
