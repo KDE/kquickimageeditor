@@ -12,3 +12,4 @@ build*/
 .cache
 .idea
 /cmake-build*
+CMakeLists.txt.user
