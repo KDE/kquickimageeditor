@@ -189,15 +189,9 @@ void ImageItem::updatePaintedRect()
     }
 }
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-void ImageItem::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
-{
-    QQuickPaintedItem::geometryChanged(newGeometry, oldGeometry);
-#else
 void ImageItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
 {
     QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
-#endif
     updatePaintedRect();
 }
 
