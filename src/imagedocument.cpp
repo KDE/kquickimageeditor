@@ -10,10 +10,6 @@
 #include "commands/mirrorcommand.h"
 #include "commands/resizecommand.h"
 #include "commands/rotatecommand.h"
-#include "commands/undocommand.h"
-
-#include <QImage>
-#include <QUrl>
 
 ImageDocument::ImageDocument(QObject *parent)
     : QObject(parent)
