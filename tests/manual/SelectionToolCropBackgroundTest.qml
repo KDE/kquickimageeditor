@@ -19,6 +19,7 @@ Item {
     KQuickImageEditor.SelectionTool {
         id: selectionTool
         anchors.fill: background
+        aspectRatio: KQuickImageEditor.SelectionTool.Square
         KQuickImageEditor.CropBackground {
             anchors.fill: parent
             z: -1

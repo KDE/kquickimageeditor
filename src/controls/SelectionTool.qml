@@ -10,14 +10,110 @@ Item {
     // make this readonly so it can be accessed without risking external modification
     readonly property SelectionHandle pressedHandle: _private.pressedHandle
     readonly property alias selectionArea: selectionArea
-    property alias selectionX: selectionArea.x
-    property alias selectionY: selectionArea.y
-    property alias selectionWidth: selectionArea.width
-    property alias selectionHeight: selectionArea.height
+    property alias selectionX: _private.pendingRect.x
+    property alias selectionY: _private.pendingRect.y
+    property alias selectionWidth: _private.pendingRect.width
+    property alias selectionHeight: _private.pendingRect.height
+    property int aspectRatio: SelectionTool.AspectRatio.Free
+
+    enum AspectRatio {
+        Free,
+        Square
+    }
 
     QtObject {
         id: _private
+
+        readonly property rect currentRect: Qt.rect(selectionArea.x, selectionArea.y, selectionArea.width, selectionArea.height)
         property SelectionHandle pressedHandle: null
+        property bool applyingPendingRect: false
+        property bool updatingPendingRect: false
+        property rect pendingRect: currentRect
+
+        onPressedHandleChanged: {
+            if (!pressedHandle && !_private.applyingPendingRect) {
+                Qt.callLater(_private.updateHandles);
+            }
+        }
+
+        function isSquareRatio(): bool {
+            return root.aspectRatio === SelectionTool.AspectRatio.Square;
+        }
+
+        function updateHandles(): void {
+            if (_private.applyingPendingRect) {
+                return;
+            }
+
+            _private.applyingPendingRect = true;
+            selectionArea.x = _private.pendingRect.x;
+            selectionArea.y = _private.pendingRect.y;
+            selectionArea.width = _private.pendingRect.width;
+            selectionArea.height = _private.pendingRect.height;
+            _private.applyingPendingRect = false;
+        }
+
+        function updatePendingRect(): void {
+            if (_private.applyingPendingRect || _private.updatingPendingRect) {
+                return;
+            }
+
+            if ((selectionArea.pressed || _private.pressedHandle) && _private.isSquareRatio()) {
+                _private.updatingPendingRect = true;
+
+                const flagX = 0x1;
+                const flagY = 0x2;
+                const flagWidth = 0x4;
+                const flagHeight = 0x8;
+                const oldRect = _private.currentRect;
+                let wide = Math.max(oldRect.width, oldRect.height);
+                let newRect = oldRect;
+
+                function offset() {
+                    if (newRect.x < 0 || newRect.y < 0) {
+                        return Math.abs(Math.min(newRect.x, newRect.y));
+                    } else if (newRect.x + newRect.width > root.width) {
+                        return (newRect.x + newRect.width) - root.width;
+                    } else if (newRect.y + newRect.height > root.height) {
+                        return (newRect.y + newRect.height) - root.height;
+                    }
+
+                    return 0;
+                }
+
+                function patchValues(flags, offset) {
+                    if (flags & flagX) newRect.x += offset;
+                    if (flags & flagY) newRect.y += offset;
+                    if (flags & flagWidth) newRect.width -= offset;
+                    if (flags & flagHeight) newRect.height -= offset;
+                }
+
+                switch (_private.pressedHandle) {
+                case handleTopLeft:
+                    newRect = Qt.rect(oldRect.right - wide, oldRect.bottom - wide, wide, wide);
+                    patchValues(flagX | flagY | flagWidth | flagHeight, offset());
+                    break;
+                case handleTopRight:
+                    newRect = Qt.rect(oldRect.left, oldRect.bottom - wide, wide, wide);
+                    patchValues(flagY | flagWidth | flagHeight, offset());
+                    break;
+                case handleBottomRight:
+                    newRect = Qt.rect(oldRect.left, oldRect.top, wide, wide);
+                    patchValues(flagWidth | flagHeight, offset());
+                    break;
+                case handleBottomLeft:
+                    newRect = Qt.rect(oldRect.right - wide, oldRect.top, wide, wide);
+                    patchValues(flagX | flagWidth | flagHeight, offset());
+                    break;
+                }
+
+                if (_private.pendingRect !== newRect) {
+                    _private.pendingRect = newRect;
+                }
+
+                _private.updatingPendingRect = false;
+            }
+        }
     }
 
     MouseArea {
@@ -81,6 +177,13 @@ Item {
             maximumY: root.height - selectionArea.height
             threshold: 0
         }
+
+        onMouseXChanged: _private.updatePendingRect()
+        onMouseYChanged: _private.updatePendingRect()
+        onXChanged: _private.updatePendingRect()
+        onYChanged: _private.updatePendingRect()
+        onWidthChanged: _private.updatePendingRect()
+        onHeightChanged: _private.updatePendingRect()
     }
 
     SelectionHandle {
@@ -93,13 +196,13 @@ Item {
         drag.maximumY: handleBottomRight.y - implicitHeight / 2
         Binding {
             target: _private; property: "pressedHandle"
-            value: handleTopLeft; when: handleTopLeft.pressed
+            value: handleTopLeft; when: !_private.applyingPendingRect && handleTopLeft.pressed
             restoreMode: Binding.RestoreBindingOrValue
         }
     }
     SelectionHandle {
         id: handleTop
-        visible: selectionArea.width >= implicitWidth
+        visible: !_private.isSquareRatio() && selectionArea.width >= implicitWidth
         target: selectionArea
         position: SelectionHandle.Top
         lockY: _private.pressedHandle && _private.pressedHandle.verticalOnly
@@ -120,13 +223,13 @@ Item {
         drag.maximumY: handleBottomLeft.y - implicitHeight / 2
         Binding {
             target: _private; property: "pressedHandle"
-            value: handleTopRight; when: handleTopRight.pressed
+            value: handleTopRight; when: !_private.applyingPendingRect && handleTopRight.pressed
             restoreMode: Binding.RestoreBindingOrValue
         }
     }
     SelectionHandle {
         id: handleLeft
-        visible: selectionArea.height >= implicitHeight
+        visible: !_private.isSquareRatio() && selectionArea.height >= implicitHeight
         target: selectionArea
         position: SelectionHandle.Left
         lockX: _private.pressedHandle && _private.pressedHandle.horizontalOnly
@@ -139,7 +242,7 @@ Item {
     }
     SelectionHandle {
         id: handleRight
-        visible: selectionArea.height >= implicitHeight
+        visible: !_private.isSquareRatio() && selectionArea.height >= implicitHeight
         target: selectionArea
         position: SelectionHandle.Right
         lockX: _private.pressedHandle && _private.pressedHandle.horizontalOnly
@@ -160,13 +263,13 @@ Item {
         drag.minimumY: handleTopRight.y + implicitHeight / 2
         Binding {
             target: _private; property: "pressedHandle"
-            value: handleBottomLeft; when: handleBottomLeft.pressed
+            value: handleBottomLeft; when: !_private.applyingPendingRect && handleBottomLeft.pressed
             restoreMode: Binding.RestoreBindingOrValue
         }
     }
     SelectionHandle {
         id: handleBottom
-        visible: selectionArea.width >= implicitWidth
+        visible: !_private.isSquareRatio() && selectionArea.width >= implicitWidth
         target: selectionArea
         position: SelectionHandle.Bottom
         lockY: _private.pressedHandle && _private.pressedHandle.verticalOnly
@@ -187,7 +290,7 @@ Item {
         drag.minimumY: handleTopLeft.y + implicitHeight / 2
         Binding {
             target: _private; property: "pressedHandle"
-            value: handleBottomRight; when: handleBottomRight.pressed
+            value: handleBottomRight; when:!_private.applyingPendingRect &&  handleBottomRight.pressed
             restoreMode: Binding.RestoreBindingOrValue
         }
     }
