@@ -53,7 +53,7 @@ find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
 
 add_subdirectory(src)
 
-feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
+feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
 # add clang-format target for all our real source files
 file(GLOB_RECURSE ALL_CLANG_FORMAT_SOURCE_FILES src/*.cpp src/*.h)
