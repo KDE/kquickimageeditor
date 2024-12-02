@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-import QtQuick 2.12
+import QtQuick
 
-import org.kde.kirigami 2.12 as Kirigami
-import org.kde.kquickimageeditor 1.0 as KQuickImageEditor
+import org.kde.kirigami as Kirigami
+import org.kde.kquickimageeditor as KQuickImageEditor
 
 KQuickImageEditor.ResizeHandle {
     width: Kirigami.Settings.isMobile ? 20 : 10
