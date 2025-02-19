@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-ecm_add_qml_module(kquickimageeditorplugin URI "org.kde.kquickimageeditor" VERSION 1.0 GENERATE_PLUGIN_SOURCE DEPENDENCIES "QtQuick")
+ecm_add_qml_module(kquickimageeditorplugin URI "org.kde.kquickimageeditor" VERSION 1.0 GENERATE_PLUGIN_SOURCE DEPENDENCIES "QtQuick" "QtQuick.Effects")
 
 target_sources(kquickimageeditorplugin PRIVATE
     commands/undocommand.cpp
