@@ -121,6 +121,34 @@ Kirigami.ApplicationWindow {
                 },
                 Kirigami.Action {
                     visible: rootEditorView.resizing
+                    displayComponent: QQC2.ComboBox {
+                        id: mode
+                        model: [
+                            SelTool.Free,
+                            SelTool.Square
+                        ]
+                        displayText: {
+                            switch (currentValue) {
+                                case SelTool.Free: return 'Free';
+                                case SelTool.Square: return 'Square';
+                            }
+                        }
+                        delegate: QQC2.ItemDelegate {
+                            width: mode.width
+                            text: {
+                                switch (model.modelData) {
+                                    case SelTool.Free: return 'Free';
+                                    case SelTool.Square: return 'Square';
+                                }
+                            }
+                            highlighted: mode.highlightedIndex === model.index
+                            onClicked: mode.currentIndex = model.index
+                        }
+                        onCurrentValueChanged: selectionTool.aspectRatio = currentValue
+                    }
+                },
+                Kirigami.Action {
+                    visible: rootEditorView.resizing
                     displayComponent: QQC2.Label {
                         text: "Size:"
                     }
