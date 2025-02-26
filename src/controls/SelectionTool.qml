@@ -58,57 +58,61 @@ Item {
                 return;
             }
 
-            if ((selectionArea.pressed || _private.pressedHandle) && _private.isSquareRatio()) {
+            if ((selectionArea.pressed || _private.pressedHandle)) {
                 _private.updatingPendingRect = true;
 
-                const flagX = 0x1;
-                const flagY = 0x2;
-                const flagWidth = 0x4;
-                const flagHeight = 0x8;
-                const oldRect = _private.currentRect;
-                let wide = Math.max(oldRect.width, oldRect.height);
-                let newRect = oldRect;
+                if (_private.isSquareRatio()) {
+                    const flagX = 0x1;
+                    const flagY = 0x2;
+                    const flagWidth = 0x4;
+                    const flagHeight = 0x8;
+                    const oldRect = _private.currentRect;
+                    let wide = Math.max(oldRect.width, oldRect.height);
+                    let newRect = oldRect;
 
-                function offset() {
-                    if (newRect.x < 0 || newRect.y < 0) {
-                        return Math.abs(Math.min(newRect.x, newRect.y));
-                    } else if (newRect.x + newRect.width > root.width) {
-                        return (newRect.x + newRect.width) - root.width;
-                    } else if (newRect.y + newRect.height > root.height) {
-                        return (newRect.y + newRect.height) - root.height;
+                    function offset() {
+                        if (newRect.x < 0 || newRect.y < 0) {
+                            return Math.abs(Math.min(newRect.x, newRect.y));
+                        } else if (newRect.x + newRect.width > root.width) {
+                            return (newRect.x + newRect.width) - root.width;
+                        } else if (newRect.y + newRect.height > root.height) {
+                            return (newRect.y + newRect.height) - root.height;
+                        }
+
+                        return 0;
                     }
 
-                    return 0;
-                }
+                    function patchValues(flags, offset) {
+                        if (flags & flagX) newRect.x += offset;
+                        if (flags & flagY) newRect.y += offset;
+                        if (flags & flagWidth) newRect.width -= offset;
+                        if (flags & flagHeight) newRect.height -= offset;
+                    }
 
-                function patchValues(flags, offset) {
-                    if (flags & flagX) newRect.x += offset;
-                    if (flags & flagY) newRect.y += offset;
-                    if (flags & flagWidth) newRect.width -= offset;
-                    if (flags & flagHeight) newRect.height -= offset;
-                }
+                    switch (_private.pressedHandle) {
+                    case handleTopLeft:
+                        newRect = Qt.rect(oldRect.right - wide, oldRect.bottom - wide, wide, wide);
+                        patchValues(flagX | flagY | flagWidth | flagHeight, offset());
+                        break;
+                    case handleTopRight:
+                        newRect = Qt.rect(oldRect.left, oldRect.bottom - wide, wide, wide);
+                        patchValues(flagY | flagWidth | flagHeight, offset());
+                        break;
+                    case handleBottomRight:
+                        newRect = Qt.rect(oldRect.left, oldRect.top, wide, wide);
+                        patchValues(flagWidth | flagHeight, offset());
+                        break;
+                    case handleBottomLeft:
+                        newRect = Qt.rect(oldRect.right - wide, oldRect.top, wide, wide);
+                        patchValues(flagX | flagWidth | flagHeight, offset());
+                        break;
+                    }
 
-                switch (_private.pressedHandle) {
-                case handleTopLeft:
-                    newRect = Qt.rect(oldRect.right - wide, oldRect.bottom - wide, wide, wide);
-                    patchValues(flagX | flagY | flagWidth | flagHeight, offset());
-                    break;
-                case handleTopRight:
-                    newRect = Qt.rect(oldRect.left, oldRect.bottom - wide, wide, wide);
-                    patchValues(flagY | flagWidth | flagHeight, offset());
-                    break;
-                case handleBottomRight:
-                    newRect = Qt.rect(oldRect.left, oldRect.top, wide, wide);
-                    patchValues(flagWidth | flagHeight, offset());
-                    break;
-                case handleBottomLeft:
-                    newRect = Qt.rect(oldRect.right - wide, oldRect.top, wide, wide);
-                    patchValues(flagX | flagWidth | flagHeight, offset());
-                    break;
-                }
-
-                if (_private.pendingRect !== newRect) {
-                    _private.pendingRect = newRect;
+                    if (_private.pendingRect !== newRect) {
+                        _private.pendingRect = newRect;
+                    }
+                } else {
+                    _private.pendingRect = _private.currentRect;
                 }
 
                 _private.updatingPendingRect = false;
