@@ -290,7 +290,7 @@ Item {
         drag.minimumY: handleTopLeft.y + implicitHeight / 2
         Binding {
             target: _private; property: "pressedHandle"
-            value: handleBottomRight; when:!_private.applyingPendingRect &&  handleBottomRight.pressed
+            value: handleBottomRight; when: !_private.applyingPendingRect && handleBottomRight.pressed
             restoreMode: Binding.RestoreBindingOrValue
         }
     }
