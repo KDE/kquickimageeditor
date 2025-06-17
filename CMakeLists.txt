@@ -4,9 +4,8 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-set(REQUIRED_KF_VERSION 6.0.0)
-set(REQUIRED_QT_VERSION 6.6.0)
-set(KDE_COMPILERSETTINGS_LEVEL 5.84.0)
+set(REQUIRED_KF_VERSION 6.13.0)
+set(REQUIRED_QT_VERSION 6.8.0)
 
 project(KQuickImageEditor LANGUAGES CXX VERSION 0.5.1)
 
@@ -20,26 +19,20 @@ include(FeatureSummary)
 include(ECMSetupVersion)
 include(KDEClangFormat)
 include(KDEGitCommitHooks)
+include(ECMGenerateExportHeader)
+include(ECMGenerateHeaders)
 include(ECMGenerateQmlTypes)
 include(CMakePackageConfigHelpers)
 include(KDEPackageAppTemplates)
 include(ECMQmlModule)
 
+find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
+find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
+find_package(OpenCV REQUIRED core imgproc)
+
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
-
-configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/KQuickImageEditorConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
-    INSTALL_DESTINATION  ${CMAKECONFIG_INSTALL_DIR}
-    PATH_VARS CMAKE_INSTALL_PREFIX
-)
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
-    DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
-    COMPONENT Devel
-)
+set(KQuickImageEditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor)
+set(kquickimageeditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/kquickimageeditor)
 
 ecm_setup_version(${PROJECT_VERSION}
     VARIABLE_PREFIX KQUICKIMAGEEDITOR
@@ -47,11 +40,23 @@ ecm_setup_version(${PROJECT_VERSION}
     PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
     SOVERSION 1
 )
-
-
-find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Quick REQUIRED)
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/KQuickImageEditorConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
+    INSTALL_DESTINATION  ${CMAKECONFIG_INSTALL_DIR}
+    PATH_VARS CMAKE_INSTALL_PREFIX
+)
 
 add_subdirectory(src)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_version.h DESTINATION ${KQuickImageEditor_INSTALL_INCLUDEDIR} COMPONENT Devel)
+install(EXPORT KQuickImageEditorTargets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE KQuickImageEditorTargets.cmake)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/KQuickImageEditorConfig.cmake"
+    DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
+    COMPONENT Devel
+)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
