@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "QtCV.h"
+#include "stackblur.h"
 #include "traits.h"
 
 #include <QCoreApplication>
@@ -130,11 +130,10 @@ public:
             p.drawText(geometryTrait->path.boundingRect(), textTrait->textFlags(), textTrait->text());
         }
         p.end();
-        auto mat = QtCV::qImageToMat(shadow);
-        const qreal sigma = Traits::Shadow::radius * devicePixelRatio;
-        const int ksize = QtCV::sigmaToKSize(sigma);
+        const qreal sigma = Traits::Shadow::radius * devicePixelRatio * 6;
+        const int kernelSize = (int)std::round(sigma + 1) | 1;
         // Do this before converting to Alpha8 because stackBlur gets distorted with Alpha8.
-        QtCV::stackBlur(mat, mat, {ksize, ksize}, sigma, sigma);
+        StackBlur::blur(shadow, {kernelSize, kernelSize});
         // We only want black shadows with opacity, so we only need black and 8 bits of alpha.
         // If we don't do this, color emojis won't have black semi-transparent shadows.
         shadow.convertTo(QImage::Format_Alpha8);

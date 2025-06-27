@@ -20,7 +20,7 @@ using namespace Qt::StringLiterals;
 
 QImage defaultImage(const QSize &size, qreal dpr)
 {
-    // RGBA is better for use with OpenCV
+    // RGBA is better for use with stackblur
     QImage image(size, QImage::Format_RGBA8888_Premultiplied);
     if (!image.isNull()) {
         image.setDevicePixelRatio(dpr);

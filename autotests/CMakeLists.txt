@@ -5,11 +5,9 @@ find_package(Qt6 ${REQUIRED_QT_VERSION} CONFIG REQUIRED Test)
 
 add_executable(stackblurtest_bin
     stackblurtest.cpp
-    ../src/annotations/QtCV.h
+    ../src/annotations/stackblur.cpp
 )
-target_include_directories(stackblurtest_bin PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(stackblurtest_bin Qt::Test Qt::Gui ${OpenCV_LIBRARIES})
-kde_target_enable_exceptions(stackblurtest_bin PRIVATE)
+target_link_libraries(stackblurtest_bin Qt::Test Qt::Gui)
 ecm_mark_as_test(stackblurtest_bin)
 
 # Run the benchmarks with just 1 iteration during CI, so we known it works

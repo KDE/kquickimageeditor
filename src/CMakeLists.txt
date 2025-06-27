@@ -41,7 +41,6 @@ kconfig_target_kcfg_file(KQuickImageEditor
 )
 
 target_sources(KQuickImageEditor PRIVATE
-    annotations/QtCV.h
     annotations/annotationdocument.cpp
     annotations/annotationdocument.h
     annotations/annotationdocument_p.h
@@ -53,6 +52,8 @@ target_sources(KQuickImageEditor PRIVATE
     annotations/history.h
     annotations/qmlpainterpath.cpp
     annotations/qmlpainterpath.h
+    annotations/stackblur.cpp
+    annotations/stackblur.h
     annotations/traits.cpp
     annotations/traits.h
     annotations/utils.h
@@ -98,9 +99,7 @@ ecm_target_qml_sources(KQuickImageEditor PRIVATE PATH private SOURCES
     annotations/private/TextContextMenu.qml
 )
 
-target_compile_options(KQuickImageEditor PRIVATE -fexceptions)
 kde_target_enable_exceptions(KQuickImageEditor PRIVATE)
-target_include_directories(KQuickImageEditor PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(KQuickImageEditor
     PUBLIC
     Qt6::Core
@@ -108,7 +107,6 @@ target_link_libraries(KQuickImageEditor
     Qt6::Qml
     KF6::ConfigCore
     KF6::ConfigGui
-    ${OpenCV_LIBRARIES}
 )
 target_include_directories(KQuickImageEditor PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/annotations>")
 target_include_directories(KQuickImageEditor INTERFACE "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor>")

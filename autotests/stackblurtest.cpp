@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 Carl Schwan <carl@carlschwan.eu>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "../src/annotations/QtCV.h"
+#include "../src/annotations/stackblur.h"
 
 #include <QObject>
 #include <QPainter>
@@ -29,9 +29,7 @@ void StackBlurTest::benchmarkStackBlur()
     QVERIFY(!img.isNull());
 
     QBENCHMARK {
-        img.convertTo(QImage::Format_RGBA8888_Premultiplied);
-        auto mat = QtCV::qImageToMat(img);
-        QtCV::stackBlur(mat, mat, {}, 20, 20);
+        StackBlur::blur(img, {121, 121});
         QVERIFY(!img.isNull());
     }
 }

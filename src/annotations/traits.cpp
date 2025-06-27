@@ -7,7 +7,7 @@
 
 #include <QLocale>
 
-#include "QtCV.h"
+#include "stackblur.h"
 #include "utils.h"
 
 using namespace Qt::StringLiterals;
@@ -143,9 +143,8 @@ QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage
         if (m_backingStoreCache.isNull()) {
             return m_backingStoreCache;
         }
-        // RGBA is better for use with OpenCV
+        // RGBA is better for use with stackblur
         m_backingStoreCache.convertTo(QImage::Format_RGBA8888_Premultiplied);
-        auto mat = QtCV::qImageToMat(m_backingStoreCache);
         // Below this, the effect is nearly invisible.
         static const qreal min = 0.5;
         // Above this, glitches with color splotches happen.
@@ -153,8 +152,9 @@ QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage
         // Scales with DPR to keep the effect looking similar for different image DPRs.
         const qreal dynamicMin = 1 * dpr;
         const qreal dynamicMax = 16 * dpr;
-        const qreal sigma = std::clamp(m_strength * (dynamicMax - dynamicMin) + dynamicMin, min, max);
-        QtCV::stackBlur(mat, mat, {}, sigma, sigma);
+        const qreal sigma = std::clamp(m_strength * (dynamicMax - dynamicMin) + dynamicMin, min, max) * 6;
+        const int kernelSize = (int)std::round(sigma + 1) | 1;
+        StackBlur::blur(m_backingStoreCache, {kernelSize, kernelSize});
         m_backingStoreCache.setDevicePixelRatio(dpr);
         m_backingStoreCache.setText(strengthKey, strengthString(m_strength));
     }
