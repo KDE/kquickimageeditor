@@ -99,7 +99,11 @@ static QString strengthString(qreal strength)
     return QString::number(strength, 'f', std::numeric_limits<qreal>::digits10);
 }
 
+#ifdef Q_OS_WIN
+static qreal clampStrength(qreal strength)
+#else
 static constexpr qreal clampStrength(qreal strength)
+#endif
 {
     if (std::isnan(strength)) {
         return 0.0;
