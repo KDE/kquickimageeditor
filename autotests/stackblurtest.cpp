@@ -16,7 +16,7 @@ private Q_SLOTS:
 
 void StackBlurTest::benchmarkStackBlur()
 {
-    QImage img(QSize{1000, 1000}, QImage::Format_ARGB32);
+    QImage img(QSize{1000, 1000}, QImage::Format_RGBA8888_Premultiplied);
     QPainter qPainter(&img);
     qPainter.setBrush(Qt::NoBrush);
     for (auto x = 0; x < 20; x++) {

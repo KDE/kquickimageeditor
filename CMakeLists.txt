@@ -32,6 +32,12 @@ include(ECMQmlModule)
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
 
+if (NOT ANDROID AND NOT WIN32 AND NOT APPLE AND NOT HAIKU)
+    find_package(OpenCV REQUIRED core imgproc)
+elseif(NOT WIN32)
+    find_package(OpenCV COMPONENTS core imgproc)
+endif()
+
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
 set(KQuickImageEditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor)
 set(kquickimageeditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/kquickimageeditor)
