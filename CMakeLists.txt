@@ -12,18 +12,21 @@ project(KQuickImageEditor LANGUAGES CXX VERSION 0.5.1)
 find_package(ECM ${REQUIRED_KF_VERSION} NO_MODULE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
+include(FeatureSummary)
+include(CMakePackageConfigHelpers)
+
 include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(KDECompilerSettings)
-include(FeatureSummary)
-include(ECMSetupVersion)
 include(KDEClangFormat)
 include(KDEGitCommitHooks)
+include(KDEPackageAppTemplates)
+
+include(ECMAddTests)
+include(ECMSetupVersion)
 include(ECMGenerateExportHeader)
 include(ECMGenerateHeaders)
 include(ECMGenerateQmlTypes)
-include(CMakePackageConfigHelpers)
-include(KDEPackageAppTemplates)
 include(ECMQmlModule)
 
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
@@ -48,6 +51,9 @@ configure_package_config_file(
 )
 
 add_subdirectory(src)
+if (BUILD_TESTING)
+  add_subdirectory(autotests)
+endif()
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_version.h DESTINATION ${KQuickImageEditor_INSTALL_INCLUDEDIR} COMPONENT Devel)
 install(EXPORT KQuickImageEditorTargets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE KQuickImageEditorTargets.cmake)
