@@ -62,6 +62,20 @@ int AnnotationDocument::redoStackDepth() const
     return d->history.redoList().size();
 }
 
+bool AnnotationDocument::isModified() const
+{
+    return d->isModified && ((!d->lastSavedHistoryItem && d->history.currentItem()) || d->lastSavedHistoryItem != d->history.currentItem());
+}
+
+void AnnotationDocument::setModified(bool modified, bool manual)
+{
+    d->isModified = modified;
+    if (manual) {
+        d->lastSavedHistoryItem = d->history.currentItem();
+    }
+    Q_EMIT modifiedChanged();
+}
+
 QRectF AnnotationDocument::canvasRect() const
 {
     return d->canvasRect;
@@ -263,9 +277,11 @@ void AnnotationDocument::clearAnnotations()
     deselectItem();
     if (result.undoListChanged) {
         Q_EMIT undoStackDepthChanged();
+        setModified(true, false);
     }
     if (result.redoListChanged) {
         Q_EMIT redoStackDepthChanged();
+        setModified(true, false);
     }
     d->setRepaintRegion(RepaintType::Annotations);
 }
@@ -476,10 +492,12 @@ HistoryItem::shared_ptr AnnotationDocumentPrivate::popCurrentItem()
             q->deselectItem();
         }
         Q_EMIT q->undoStackDepthChanged();
+        q->setModified(true, false);
         setRepaintRegion(result.item->renderRect());
     }
     if (result.redoListChanged) {
         Q_EMIT q->redoStackDepthChanged();
+        q->setModified(true, false);
     }
     return result.item;
 }
@@ -562,6 +580,7 @@ void AnnotationDocument::undo()
 
     Q_EMIT undoStackDepthChanged();
     Q_EMIT redoStackDepthChanged();
+    setModified(true, false);
 }
 
 void AnnotationDocument::redo()
@@ -599,6 +618,7 @@ void AnnotationDocument::redo()
 
     Q_EMIT undoStackDepthChanged();
     Q_EMIT redoStackDepthChanged();
+    setModified(true, false);
 }
 
 bool isAnyOfToolType(AnnotationTool::Tool type, auto... args)
@@ -858,9 +878,11 @@ void AnnotationDocumentPrivate::addItem(const HistoryItem::shared_ptr &item)
     auto result = history.push(item);
     if (result.undoListChanged) {
         Q_EMIT q->undoStackDepthChanged();
+        q->setModified(true, false);
     }
     if (result.redoListChanged) {
         Q_EMIT q->redoStackDepthChanged();
+        q->setModified(true, false);
     }
 }
 

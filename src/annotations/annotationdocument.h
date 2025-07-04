@@ -47,6 +47,15 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationDocument : public QObject
     Q_PROPERTY(QMatrix4x4 renderTransform READ renderTransform NOTIFY transformChanged)
     Q_PROPERTY(QMatrix4x4 inputTransform READ inputTransform NOTIFY transformChanged)
 
+    /*!
+     * \qmlproperty bool AnnotationDocument::modified
+     *
+     * This property holds whether the document has been modified by the user.
+     *
+     * By default, this property is false.
+     */
+    Q_PROPERTY(bool modified READ isModified WRITE setModified NOTIFY modifiedChanged)
+
 public:
     enum class ContinueOption {
         NoOptions = 0,
@@ -73,6 +82,9 @@ public:
 
     int undoStackDepth() const;
     int redoStackDepth() const;
+
+    bool isModified() const;
+    void setModified(bool modified, bool manual = true);
 
     QRectF canvasRect() const;
 
@@ -152,6 +164,7 @@ Q_SIGNALS:
     void imageSizeChanged();
     void imageDprChanged();
     void transformChanged();
+    void modifiedChanged();
 
     void repaintNeeded(AnnotationDocument::RepaintTypes types);
 

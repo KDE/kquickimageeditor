@@ -72,6 +72,8 @@ public:
     // until the changes are committed.
     HistoryItem::shared_ptr tempItem;
     History history;
+    bool isModified = false;
+    HistoryItem::shared_ptr lastSavedHistoryItem;
 
     AnnotationDocumentPrivate(AnnotationDocument *q)
         : q(q)
