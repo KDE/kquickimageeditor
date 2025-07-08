@@ -219,7 +219,7 @@ AnimatedLoader {
                 onActiveTranslationChanged: if (active) {
                     const dx = Utils.dprRound(activeTranslation.x, Screen.devicePixelRatio) / viewport.scale
                     const dy = Utils.dprRound(activeTranslation.y, Screen.devicePixelRatio) / viewport.scale
-                    root.document.selectedItem.transform(dx, dy)
+                    root.document.selectedItem.applyTransform(dx, dy)
                 }
                 onActiveChanged: if (!active) {
                     root.document.selectedItem.commitChanges()
@@ -235,6 +235,9 @@ AnimatedLoader {
         P.TextContextMenu {
             id: contextMenu
             target: textField
+        }
+        transform: Matrix4x4 {
+            matrix: root.document.transform
         }
         onPressed: (event) => {
             if (event.button === Qt.RightButton) {

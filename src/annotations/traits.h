@@ -7,6 +7,7 @@
 #include <QBrush>
 #include <QFont>
 #include <QHash>
+#include <QMatrix4x4>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
@@ -190,7 +191,7 @@ struct Shadow {
     bool enabled = true;
 };
 
-// Traits that represent a kind of change to the document, but don't do anything directly.
+// Traits that represent a kind of change to the document, but can't draw anything directly.
 namespace Meta
 {
 struct Delete {
@@ -198,6 +199,18 @@ struct Delete {
 };
 struct Crop {
     COMMON_TRAIT_DEFS(Crop)
+};
+struct Transform {
+    COMMON_TRAIT_DEFS(Transform)
+    QMatrix4x4 matrix;
+    operator QTransform () const
+    {
+        return matrix.toTransform();
+    }
+    operator const QMatrix4x4 &() const
+    {
+        return matrix;
+    }
 };
 }
 
@@ -211,7 +224,8 @@ using OptTuple = std::tuple<Geometry::Opt,
                             Text::Opt,
                             Shadow::Opt,
                             Meta::Delete::Opt,
-                            Meta::Crop::Opt>;
+                            Meta::Crop::Opt,
+                            Meta::Transform::Opt>;
 
 struct Translation {
     // QTransform: m31
@@ -307,35 +321,28 @@ QRectF visualRect(const OptTuple &traits);
 // clang-format off
 #define DEBUG_DEF(ClassName)\
 QDebug operator<<(QDebug debug, const ClassName &ref);
+#define DEBUG_TRAIT_DEF(ClassName)\
+QDebug operator<<(QDebug debug, const ClassName &ref);\
+QDebug operator<<(QDebug debug, const ClassName::Opt &ref);
 // clang-format on
 
-DEBUG_DEF(Traits::Geometry)
-DEBUG_DEF(Traits::Interactive)
-DEBUG_DEF(Traits::Visual)
-DEBUG_DEF(Traits::Stroke)
-DEBUG_DEF(Traits::Fill)
-DEBUG_DEF(Traits::Highlight)
-DEBUG_DEF(Traits::Arrow)
-DEBUG_DEF(Traits::Text)
-DEBUG_DEF(Traits::Shadow)
-DEBUG_DEF(Traits::Meta::Delete)
-DEBUG_DEF(Traits::Meta::Crop)
+DEBUG_TRAIT_DEF(Traits::Geometry)
+DEBUG_TRAIT_DEF(Traits::Interactive)
+DEBUG_TRAIT_DEF(Traits::Visual)
+DEBUG_TRAIT_DEF(Traits::Stroke)
+DEBUG_TRAIT_DEF(Traits::Fill)
+DEBUG_TRAIT_DEF(Traits::Highlight)
+DEBUG_TRAIT_DEF(Traits::Arrow)
+DEBUG_TRAIT_DEF(Traits::Text)
+DEBUG_TRAIT_DEF(Traits::Shadow)
+DEBUG_TRAIT_DEF(Traits::Meta::Delete)
+DEBUG_TRAIT_DEF(Traits::Meta::Crop)
+DEBUG_TRAIT_DEF(Traits::Meta::Transform)
 
 DEBUG_DEF(Traits::ImageEffects::Blur)
 DEBUG_DEF(Traits::ImageEffects::Pixelate)
 
-DEBUG_DEF(Traits::Geometry::Opt)
-DEBUG_DEF(Traits::Interactive::Opt)
-DEBUG_DEF(Traits::Visual::Opt)
-DEBUG_DEF(Traits::Stroke::Opt)
-DEBUG_DEF(Traits::Fill::Opt)
-DEBUG_DEF(Traits::Highlight::Opt)
-DEBUG_DEF(Traits::Arrow::Opt)
-DEBUG_DEF(Traits::Text::Opt)
-DEBUG_DEF(Traits::Shadow::Opt)
-DEBUG_DEF(Traits::Meta::Delete::Opt)
-DEBUG_DEF(Traits::Meta::Crop::Opt)
-
 DEBUG_DEF(Traits::OptTuple)
 
+#undef DEBUG_TRAIT_DEF
 #undef DEBUG_DEF

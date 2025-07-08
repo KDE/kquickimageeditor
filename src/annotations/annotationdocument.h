@@ -43,6 +43,9 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationDocument : public QObject
     Q_PROPERTY(QRectF canvasRect READ canvasRect NOTIFY canvasRectChanged)
     Q_PROPERTY(QSizeF imageSize READ imageSize NOTIFY imageSizeChanged)
     Q_PROPERTY(qreal imageDpr READ imageDpr NOTIFY imageDprChanged)
+    Q_PROPERTY(QMatrix4x4 transform READ transform NOTIFY transformChanged)
+    Q_PROPERTY(QMatrix4x4 renderTransform READ renderTransform NOTIFY transformChanged)
+    Q_PROPERTY(QMatrix4x4 inputTransform READ inputTransform NOTIFY transformChanged)
 
 public:
     enum class ContinueOption {
@@ -97,6 +100,19 @@ public:
     /// Hide annotations that do not intersect with the rectangle and crop the image.
     Q_INVOKABLE void cropCanvas(const QRectF &cropRect);
 
+    /// Get the whole image transform
+    QMatrix4x4 transform() const;
+
+    // A transform that is good for rendering annotations
+    QMatrix4x4 renderTransform() const;
+    // A transform that is good for processing input for annotations
+    QMatrix4x4 inputTransform() const;
+
+    /// Apply a transform and combine it with the existing transform.
+    /// This is not part of the `transform` property. It adds an item to
+    /// history and we don't want this to be rapidly called through bindings.
+    Q_INVOKABLE void applyTransform(const QMatrix4x4 &matrix);
+
     /// Clear all annotations. Cannot be undone.
     Q_INVOKABLE void clearAnnotations();
 
@@ -135,6 +151,7 @@ Q_SIGNALS:
     void canvasRectChanged();
     void imageSizeChanged();
     void imageDprChanged();
+    void transformChanged();
 
     void repaintNeeded(AnnotationDocument::RepaintTypes types);
 
@@ -167,17 +184,18 @@ class KQUICKIMAGEEDITOR_EXPORT SelectedItemWrapper : public QObject
     Q_PROPERTY(int number READ number WRITE setNumber NOTIFY numberChanged)
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
     Q_PROPERTY(bool shadow READ hasShadow WRITE setShadow NOTIFY shadowChanged)
+    Q_PROPERTY(QPainterPath geometryPath READ geometryPath NOTIFY geometryPathChanged)
     Q_PROPERTY(QPainterPath mousePath READ mousePath NOTIFY mousePathChanged)
+    Q_PROPERTY(QMatrix4x4 transform READ transform NOTIFY transformChanged)
 
 public:
     SelectedItemWrapper(AnnotationDocument *document);
     ~SelectedItemWrapper();
 
-    // Transform the item with the given x and y deltas and at the specified edges.
-    // Specifying no edges or all edges only translates.
-    // We don't set things like scale directly because that would require more complex logic to be
-    // written in various places in QML files.
-    Q_INVOKABLE void transform(qreal dx, qreal dy, Qt::Edges edges = {});
+    // Transform the item with the given matrix.
+    // The argument will be combined with the existing transform.
+    // The origin will be the center of the geometry path bounding rect.
+    Q_INVOKABLE void applyTransform(const QMatrix4x4 &matrix);
 
     // Pushes the temporary item to history and sets the selected item as the temporary item parent.
     // Returns whether the commit actually happened.
@@ -214,7 +232,12 @@ public:
     bool hasShadow() const;
     void setShadow(bool shadow);
 
+    QPainterPath geometryPath() const;
     QPainterPath mousePath() const;
+
+    // The combination of all transforms applied directly to this item.
+    // This is needed to know how much this item has changed.
+    QMatrix4x4 transform() const;
 
 Q_SIGNALS:
     void strokeWidthChanged();
@@ -226,12 +249,15 @@ Q_SIGNALS:
     void numberChanged();
     void textChanged();
     void shadowChanged();
+    void geometryPathChanged();
     void mousePathChanged();
+    void transformChanged();
 
 private:
     friend class AnnotationDocument;
     friend class AnnotationDocumentPrivate;
     friend class SelectedItemWrapperPrivate;
+    friend class AnnotationViewport;
     std::unique_ptr<SelectedItemWrapperPrivate> d;
 };
 

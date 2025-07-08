@@ -67,7 +67,7 @@ QRectF AnnotationDocument::canvasRect() const
     return d->canvasRect;
 }
 
-void AnnotationDocumentPrivate::setCanvas(const QRectF &rect, qreal dpr)
+void AnnotationDocumentPrivate::setCanvas(const QRectF &rect, qreal dpr, const std::optional<QMatrix4x4> &newTransform)
 {
     // Don't allow an invalid canvas rect or device pixel ratio.
     if (rect.isEmpty()) {
@@ -80,6 +80,7 @@ void AnnotationDocumentPrivate::setCanvas(const QRectF &rect, qreal dpr)
     const bool posChanged = canvasRect.topLeft() != rect.topLeft();
     const bool sizeChanged = canvasRect.size() != rect.size();
     const bool dprChanged = imageDpr != dpr;
+    const bool transformChanged = newTransform && *newTransform != transform;
     if (posChanged || sizeChanged) {
         canvasRect = rect;
         Q_EMIT q->canvasRectChanged();
@@ -90,28 +91,41 @@ void AnnotationDocumentPrivate::setCanvas(const QRectF &rect, qreal dpr)
     }
     if (sizeChanged || dprChanged) {
         imageSize = (rect.size() * dpr).toSize();
-        annotationsImage = defaultImage(imageSize, dpr);
         Q_EMIT q->imageSizeChanged();
     }
-    // Reset cropped image
-    if (!baseImage.isNull()) {
-        const auto imageDIRect = deviceIndependentRect(baseImage);
-        if (canvasRect.contains(imageDIRect)) {
-            croppedBaseImage = {};
-        } else {
-            const auto imageRect = Utils::rectScaled(canvasRect.intersected(imageDIRect), imageDpr).toRect();
-            croppedBaseImage = baseImage.copy(imageRect);
-        }
-    } else if (!croppedBaseImage.isNull()) {
-        croppedBaseImage = {};
+    if (transformChanged) {
+        transform = *newTransform;
+        invertedTransform = transform.inverted();
     }
+    if (transformChanged || posChanged) {
+        auto [dx, dy] = -invertedTransform.map(canvasRect.topLeft());
+        renderTransform = transform;
+        renderTransform.translate(dx, dy);
+        inputTransform = invertedTransform;
+        inputTransform.translate(canvasRect.x(), canvasRect.y());
+        Q_EMIT q->transformChanged();
+    }
+    // Reset image cache
+    baseImageCache = [this]() -> QImage {
+        if (baseImage.isNull()) {
+            return {};
+        }
+        auto imageRect = deviceIndependentRect(baseImage);
+        const auto untransformedCanvasRect = invertedTransform.mapRect(canvasRect);
+        auto image = baseImage;
+        if (!untransformedCanvasRect.contains(imageRect)) {
+            imageRect = Utils::rectScaled(untransformedCanvasRect.intersected(imageRect), imageDpr);
+            image = image.copy(imageRect.toRect());
+        }
+        if (transform.isIdentity()) {
+            return image;
+        }
+        return image.transformed(transform.toTransform(), Qt::SmoothTransformation);
+    }();
+    annotationsImage = defaultImage(imageSize, imageDpr);
+    annotationsImage = q->annotationsImage();
     // Unconditionally repaint the whole canvas area
     setRepaintRegion();
-}
-
-void AnnotationDocumentPrivate::resetCanvas()
-{
-    setCanvas(deviceIndependentRect(baseImage), baseImage.devicePixelRatio());
 }
 
 QSizeF AnnotationDocument::imageSize() const
@@ -131,10 +145,10 @@ QImage AnnotationDocument::baseImage() const
 
 QImage AnnotationDocument::canvasBaseImage() const
 {
-    if (d->baseImage.isNull() || d->croppedBaseImage.isNull()) {
+    if (d->baseImage.isNull() || d->baseImageCache.isNull()) {
         return d->baseImage;
     }
-    return d->croppedBaseImage;
+    return d->baseImageCache;
 }
 
 void AnnotationDocument::setBaseImage(const QImage &image)
@@ -143,7 +157,7 @@ void AnnotationDocument::setBaseImage(const QImage &image)
         return;
     }
     d->baseImage = image;
-    d->resetCanvas();
+    d->setCanvas(deviceIndependentRect(d->baseImage), d->baseImage.devicePixelRatio(), QTransform{});
 }
 
 void AnnotationDocument::setBaseImage(const QString &path)
@@ -190,8 +204,59 @@ void AnnotationDocument::cropCanvas(const QRectF &cropRect)
     d->addItem(newItem);
 }
 
+QMatrix4x4 AnnotationDocument::transform() const
+{
+    return d->transform;
+}
+
+QMatrix4x4 AnnotationDocument::renderTransform() const
+{
+    return d->renderTransform;
+}
+
+QMatrix4x4 AnnotationDocument::inputTransform() const
+{
+    return d->inputTransform;
+}
+
+void AnnotationDocumentPrivate::setTransform(const QMatrix4x4 &newTransform)
+{
+    if (transform == newTransform) {
+        return;
+    }
+    // NOTE: the order of arguments for operator* is important.
+    // With a different order, the wrong scale/shear would be applied to translations.
+    auto diffTransform = invertedTransform * newTransform;
+    setCanvas(diffTransform.mapRect(canvasRect), imageDpr, newTransform);
+}
+
+void AnnotationDocument::applyTransform(const QMatrix4x4 &matrix)
+{
+    if (matrix.isIdentity()) {
+        return;
+    }
+    auto newItem = std::make_shared<HistoryItem>();
+    // NOTE: the order of arguments for operator* is important.
+    // With a different order, the wrong scale/shear would be applied to translations.
+    auto &transform = std::get<Traits::Meta::Transform::Opt>(newItem->traits()).emplace(d->transform * matrix);
+    const auto &undoList = d->history.undoList();
+    for (auto it = std::ranges::crbegin(undoList); it != std::ranges::crend(undoList); ++it) {
+        const auto &item = *it;
+        if (!item) {
+            continue;
+        }
+        if (std::get<Traits::Meta::Transform::Opt>(item->traits()).has_value()) {
+            HistoryItem::setItemRelations(item, newItem);
+            break;
+        }
+    }
+    d->addItem(newItem);
+    d->setTransform(transform);
+}
+
 void AnnotationDocument::clearAnnotations()
 {
+    d->setTransform({});
     auto result = d->history.clearLists();
     d->tool->resetType();
     d->tool->resetNumber();
@@ -263,7 +328,10 @@ void AnnotationDocumentPrivate::paintAnnotations(QPainter *painter, const QRegio
                 painter->setClipRegion(region);
             }
         }
-        paintImageView(painter, baseImage);
+        auto transform = painter->transform();
+        painter->setTransform({});
+        paintImageView(painter, q->canvasBaseImage());
+        painter->setTransform(transform);
         if (hasDifferentClip) {
             painter->setClipRegion(oldRegion);
         }
@@ -356,8 +424,7 @@ QImage AnnotationDocument::annotationsImage() const
     }
     if (!d->repaintRegion.isEmpty()) {
         QPainter painter(&d->annotationsImage);
-        // canvas rect top left should be (0,0) in annotations image
-        painter.translate(-d->canvasRect.topLeft());
+        painter.setTransform(d->renderTransform.toTransform());
         // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
         painter.setClipRegion(d->repaintRegion);
         // Clear mode is needed to actually clear the region.
@@ -468,12 +535,20 @@ void AnnotationDocument::undo()
             d->tool->setNumber(std::get<Traits::Text::Number>(text.value()));
         }
     }
+    if (std::get<Traits::Meta::Transform::Opt>(currentItem->traits())) {
+        auto parent = currentItem->parent().lock();
+        if (parent) {
+            d->setTransform(std::get<Traits::Meta::Transform::Opt>(parent->traits()).value_or(Traits::Meta::Transform{}));
+        } else {
+            d->setTransform({});
+        }
+    }
     if (std::get<Traits::Meta::Crop::Opt>(currentItem->traits()).has_value()) {
         auto parent = currentItem->parent().lock();
         if (parent) {
             d->setCanvas(Traits::geometryPathBounds(parent->traits()), d->imageDpr);
-        } else if (!d->baseImage.isNull()) {
-            d->resetCanvas();
+        } else {
+            d->setCanvas(deviceIndependentRect(d->baseImage), d->imageDpr);
         }
     }
     if (currentItem == d->selectedItemWrapper->d->selectedItem.lock()) {
@@ -506,6 +581,9 @@ void AnnotationDocument::redo()
         if (text->index() == Traits::Text::Number) {
             d->tool->setNumber(std::get<Traits::Text::Number>(text.value()) + 1);
         }
+    }
+    if (auto &transform = std::get<Traits::Meta::Transform::Opt>(nextItem->traits())) {
+        d->setTransform(std::get<Traits::Meta::Transform::Opt>(nextItem->traits()).value_or(Traits::Meta::Transform{}));
     }
     if (std::get<Traits::Meta::Crop::Opt>(nextItem->traits()).has_value()) {
         d->setCanvas(Traits::geometryPathBounds(nextItem->traits()), d->imageDpr);
@@ -788,7 +866,7 @@ void AnnotationDocumentPrivate::addItem(const HistoryItem::shared_ptr &item)
 
 void AnnotationDocumentPrivate::setRepaintRegion(const QRectF &rect, AnnotationDocument::RepaintTypes types)
 {
-    if (rect.isNull() || !canvasRect.intersects(rect)) {
+    if (rect.isNull() || !canvasRect.intersects(transform.mapRect(rect))) {
         // No point in trying to transform or add to the region if not in the canvas rect.
         return;
     }
@@ -804,7 +882,7 @@ void AnnotationDocumentPrivate::setRepaintRegion(const QRectF &rect, AnnotationD
      * We normalize the rect because operator+= will no-op if `rect.isEmpty()`.
      * `QRectF::isEmpty()` is true when the size is 0 or negative.
      */
-    if (!canvasRect.intersects(biggerRect)) {
+    if (!canvasRect.intersects(transform.mapRect(biggerRect))) {
         // No point in trying to transform or add to the region if true.
         return;
     }
@@ -819,7 +897,7 @@ void AnnotationDocumentPrivate::setRepaintRegion(const QRectF &rect, AnnotationD
 void AnnotationDocumentPrivate::setRepaintRegion(AnnotationDocument::RepaintTypes types)
 {
     const bool emitRepaintNeeded = repaintRegion.isEmpty() || lastRepaintTypes != types;
-    repaintRegion = canvasRect.toAlignedRect();
+    repaintRegion = invertedTransform.mapRect(canvasRect).toAlignedRect();
     lastRepaintTypes = types;
     if (emitRepaintNeeded) {
         Q_EMIT q->repaintNeeded(lastRepaintTypes);
@@ -867,6 +945,7 @@ void SelectedItemWrapperPrivate::setSelectedItem(const HistoryItem::const_shared
 
         options.setFlag(AnnotationTool::ShadowOption, //
                           std::get<Traits::Shadow::Opt>(temp->traits()).has_value());
+        transform = {};
     } else {
         reset();
     }
@@ -874,42 +953,37 @@ void SelectedItemWrapperPrivate::setSelectedItem(const HistoryItem::const_shared
     Q_EMIT document->selectedItemWrapperChanged();
 }
 
-void SelectedItemWrapper::transform(qreal dx, qreal dy, Qt::Edges edges)
+void SelectedItemWrapper::applyTransform(const QMatrix4x4 &matrix)
 {
     auto selectedItem = d->selectedItem.lock();
     auto &temp = d->document->d->tempItem;
-    if (!selectedItem || !temp || (qFuzzyIsNull(dx) && qFuzzyIsNull(dy))) {
+    if (!selectedItem || !temp || matrix.isIdentity()) {
         return;
     }
     d->document->d->setRepaintRegion(temp->renderRect());
-    auto &oldPath = std::get<Traits::Geometry::Opt>(selectedItem->traits())->path;
-    auto &path = std::get<Traits::Geometry::Opt>(temp->traits())->path;
-    if (edges.toInt() == 0 //
-        || edges.testFlags({Qt::TopEdge, Qt::LeftEdge, Qt::RightEdge, Qt::BottomEdge})) {
-        const auto pathDelta = path.boundingRect().topLeft() - oldPath.boundingRect().topLeft();
-        QTransform transform;
-        transform.translate(dx - pathDelta.x(), dy - pathDelta.y());
+    auto appliedTransform = matrix.toTransform();
+    if (appliedTransform.type() == QTransform::TxTranslate) {
         // This is less expensive since we don't regenerate stroke or mousePath when translating.
-        Traits::transformTraits(transform, temp->traits());
+        Traits::transformTraits(appliedTransform, temp->traits());
     } else {
-        const auto oldRect = oldPath.boundingRect();
-        const auto leftEdge = edges.testFlag(Qt::LeftEdge);
-        const auto topEdge = edges.testFlag(Qt::TopEdge);
-        const auto newRect = oldRect.adjusted(leftEdge ? dx : 0, //
-                                              topEdge ? dy : 0,
-                                              edges.testFlag(Qt::RightEdge) ? dx : 0,
-                                              edges.testFlag(Qt::BottomEdge) ? dy : 0);
-        auto scale = Traits::scaleForSize(oldRect.size(), newRect.size());
-        auto translation = Traits::unTranslateScale(scale.sx, scale.sy, oldRect.topLeft());
-        translation.dx += leftEdge || oldRect.width() == 0 ? dx : 0;
-        translation.dy += topEdge || oldRect.height() == 0 ? dy : 0;
-        // Translate before scale to avoid scaling translation.
-        auto transform = QTransform::fromTranslate(translation.dx, translation.dy);
-        transform.scale(scale.sx, scale.sy);
-        path = transform.map(oldPath);
+        auto &path = std::get<Traits::Geometry::Opt>(temp->traits())->path;
+        // origin for transformation
+        const auto [ox, oy] = path.boundingRect().center();
+        // Eliminate unintentional translation.
+        // It's unintuitive, but this applies the translation without scaling/shearing it.
+        appliedTransform *= QTransform::fromTranslate(ox, oy);
+        // This does a scaled/sheared translation.
+        appliedTransform.translate(-ox, -oy);
+        path = appliedTransform.map(path);
         Traits::reInitTraits(temp->traits());
     }
+    // NOTE: the order of arguments for operator* is important.
+    // With a different order, the wrong scale/shear would be applied to translations.
+    d->transform = d->transform * matrix;
+    d->transform.optimize();
     d->document->d->setRepaintRegion(temp->renderRect());
+    Q_EMIT transformChanged();
+    Q_EMIT geometryPathChanged();
     Q_EMIT mousePathChanged();
 }
 
@@ -953,6 +1027,7 @@ bool SelectedItemWrapperPrivate::reset()
     temp.reset();
     this->selectedItem.reset();
     options = AnnotationTool::NoOptions;
+    transform = {};
     // Not emitting selectedItemWrapperChanged.
     // Use the return value to determine if that should be done when necessary.
     return selectionChanged;
@@ -993,6 +1068,7 @@ void SelectedItemWrapper::setStrokeWidth(int width)
     Traits::reInitTraits(temp->traits());
     d->document->d->setRepaintRegion(temp->renderRect());
     Q_EMIT strokeWidthChanged();
+    Q_EMIT geometryPathChanged();
     Q_EMIT mousePathChanged();
 }
 
@@ -1106,6 +1182,7 @@ void SelectedItemWrapper::setFont(const QFont &font)
     Traits::reInitTraits(temp->traits());
     d->document->d->setRepaintRegion(temp->renderRect());
     Q_EMIT fontChanged();
+    Q_EMIT geometryPathChanged();
     Q_EMIT mousePathChanged();
 }
 
@@ -1161,6 +1238,7 @@ void SelectedItemWrapper::setNumber(int number)
     Traits::reInitTraits(temp->traits());
     d->document->d->setRepaintRegion(temp->renderRect());
     Q_EMIT numberChanged();
+    Q_EMIT geometryPathChanged();
     Q_EMIT mousePathChanged();
 }
 
@@ -1191,6 +1269,7 @@ void SelectedItemWrapper::setText(const QString &string)
     Traits::reInitTraits(temp->traits());
     d->document->d->setRepaintRegion(temp->renderRect());
     Q_EMIT textChanged();
+    Q_EMIT geometryPathChanged();
     Q_EMIT mousePathChanged();
 }
 
@@ -1221,6 +1300,15 @@ void SelectedItemWrapper::setShadow(bool enabled)
     Q_EMIT shadowChanged();
 }
 
+QPainterPath SelectedItemWrapper::geometryPath() const
+{
+    auto &temp = d->document->d->tempItem;
+    if (!hasSelection()) {
+        return {};
+    }
+    return Traits::geometryPath(temp->traits());
+}
+
 QPainterPath SelectedItemWrapper::mousePath() const
 {
     auto &temp = d->document->d->tempItem;
@@ -1228,6 +1316,11 @@ QPainterPath SelectedItemWrapper::mousePath() const
         return {};
     }
     return Traits::interactivePath(temp->traits());
+}
+
+QMatrix4x4 SelectedItemWrapper::transform() const
+{
+    return d->transform;
 }
 
 QDebug operator<<(QDebug debug, const SelectedItemWrapper *wrapper)

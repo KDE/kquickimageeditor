@@ -51,10 +51,7 @@ public:
 
 QPointF AnnotationViewportPrivate::inputOffset() const
 {
-    if (!document) {
-        return viewportRect.topLeft();
-    }
-    return viewportRect.topLeft() + document->canvasRect().topLeft();
+    return viewportRect.topLeft();
 }
 
 class AnnotationViewportNode : public QSGNode
@@ -282,9 +279,12 @@ void AnnotationViewport::hoverMoveEvent(QHoverEvent *event)
         auto margin = 4;
         QRectF forgivingRect{position, QSizeF{0, 0}};
         forgivingRect.adjust(-margin, -margin, margin, margin);
-        if (auto item = d->document->d->itemAt(forgivingRect.translated(d->inputOffset()))) {
+        auto transform = d->document->d->inputTransform;
+        auto [dx, dy] = d->inputOffset();
+        transform.translate(dx, dy);
+        if (auto item = d->document->d->itemAt(transform.mapRect(forgivingRect))) {
             auto &interactive = std::get<Traits::Interactive::Opt>(item->traits());
-            d->setHoveredMousePath(interactive->path.translated(d->inputOffset()));
+            d->setHoveredMousePath(interactive->path);
         } else {
             d->setHoveredMousePath({});
         }
@@ -312,13 +312,16 @@ void AnnotationViewport::mousePressEvent(QMouseEvent *event)
     auto toolType = d->document->tool()->type();
     auto wrapper = d->document->selectedItemWrapper();
     auto pressPos = Utils::dprRound(event->position(), window()->devicePixelRatio());
-    d->lastDocumentPressPos = pressPos + d->inputOffset();
+    auto transform = d->document->d->inputTransform;
+    auto [dx, dy] = d->inputOffset();
+    transform.translate(dx, dy);
+    d->lastDocumentPressPos = transform.map(pressPos);
 
     if (toolType == AnnotationTool::SelectTool) {
         auto margin = 4;
         QRectF forgivingRect{pressPos, QSizeF{0, 0}};
         forgivingRect.adjust(-margin, -margin, margin, margin);
-        d->document->selectItem(forgivingRect.translated(d->inputOffset()));
+        d->document->selectItem(transform.mapRect(forgivingRect));
     } else {
         wrapper->commitChanges();
         d->document->beginItem(d->lastDocumentPressPos);
@@ -341,12 +344,16 @@ void AnnotationViewport::mouseMoveEvent(QMouseEvent *event)
 
     auto tool = d->document->tool();
     auto mousePos = Utils::dprRound(event->position(), window()->devicePixelRatio());
+    auto transform = d->document->d->inputTransform;
+    auto [dx, dy] = d->inputOffset();
+    transform.translate(dx, dy);
     auto wrapper = d->document->selectedItemWrapper();
     if (tool->type() == AnnotationTool::SelectTool && wrapper->hasSelection() && d->allowDraggingSelection) {
-        auto documentMousePos = mousePos + d->inputOffset();
-        auto dx = documentMousePos.x() - d->lastDocumentPressPos.x();
-        auto dy = documentMousePos.y() - d->lastDocumentPressPos.y();
-        wrapper->transform(dx, dy);
+        auto documentMousePos = transform.map(mousePos);
+        auto delta = wrapper->d->transform.inverted().map(documentMousePos - d->lastDocumentPressPos);
+        QMatrix4x4 matrix;
+        matrix.translate(delta.x(), delta.y());
+        wrapper->applyTransform(matrix);
     } else if (tool->isCreationTool()) {
         using ContinueOptions = AnnotationDocument::ContinueOptions;
         using ContinueOption = AnnotationDocument::ContinueOption;
@@ -357,7 +364,7 @@ void AnnotationViewport::mouseMoveEvent(QMouseEvent *event)
         if (event->modifiers() & Qt::ControlModifier) {
             options |= ContinueOption::CenterResize;
         }
-        d->document->continueItem(mousePos + d->inputOffset(), options);
+        d->document->continueItem(transform.map(mousePos), options);
     }
 
     d->setHoveredMousePath({});
@@ -488,6 +495,8 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
             QPointF pos(std::round((width() - size.width()) / 2 * windowDpr) / windowDpr, //
                         std::round((height() - size.height()) / 2 * windowDpr) / windowDpr);
             node->setRect({pos, size});
+        } else {
+            node->setRect({});
         }
     };
 

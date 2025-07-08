@@ -66,7 +66,10 @@ bool Traits::Meta::Crop::isValid() const
 {
     return true;
 }
-
+bool Traits::Meta::Transform::isValid() const
+{
+    return true;
+}
 // Stroke
 
 QPen Traits::Stroke::defaultPen()
@@ -505,6 +508,9 @@ bool Traits::isValidTraitOpt(const Traits::OptTuple &traits, bool isNullValid)
     if constexpr (std::same_as<T, Meta::Delete>) {
         return trait.isValid();
     }
+    if constexpr (std::same_as<T, Meta::Transform>) {
+        return trait.isValid();
+    }
 
     // Traits that depend on geometry
     auto &geometry = std::get<Traits::Geometry::Opt>(traits);
@@ -552,7 +558,7 @@ bool isValidHelper(const Traits::OptTuple &traits)
 
 bool Traits::isValid(const OptTuple &traits)
 {
-    return isValidHelper<Geometry, Interactive, Visual, Stroke, Fill, Highlight, Arrow, Text, Shadow, Meta::Delete, Meta::Crop>(traits);
+    return isValidHelper<Geometry, Interactive, Visual, Stroke, Fill, Highlight, Arrow, Text, Shadow, Meta::Delete, Meta::Crop, Meta::Transform>(traits);
 }
 
 bool Traits::isVisible(const OptTuple &traits)
@@ -745,6 +751,18 @@ QDebug operator<<(QDebug debug, const Traits::Meta::Crop &trait)
     return debug;
 }
 
+QDebug operator<<(QDebug debug, const Traits::Meta::Transform &trait)
+{
+    using namespace Traits;
+    QDebugStateSaver stateSaver(debug);
+    debug.nospace();
+    debug << "Transform" << '(';
+    debug << (const void *)&trait;
+    debug << ", " << trait.matrix;
+    debug << ')';
+    return debug;
+}
+
 // ImageEffects
 
 QDebug operator<<(QDebug debug, const Traits::ImageEffects::Blur &ref)
@@ -800,7 +818,7 @@ OPTIONAL_DEBUG_DEF(Text)
 OPTIONAL_DEBUG_DEF(Shadow)
 OPTIONAL_DEBUG_DEF(Meta::Delete)
 OPTIONAL_DEBUG_DEF(Meta::Crop)
-
+OPTIONAL_DEBUG_DEF(Meta::Transform)
 #undef OPTIONAL_DEBUG_DEF
 
 QDebug operator<<(QDebug debug, const Traits::OptTuple &optTuple)
@@ -821,6 +839,7 @@ QDebug operator<<(QDebug debug, const Traits::OptTuple &optTuple)
     debug << ",\n  " << std::get<Traits::Shadow::Opt>(optTuple);
     debug << ",\n  " << std::get<Traits::Meta::Delete::Opt>(optTuple);
     debug << ",\n  " << std::get<Traits::Meta::Crop::Opt>(optTuple);
+    debug << ",\n  " << std::get<Traits::Meta::Transform::Opt>(optTuple);
     debug << ')';
     return debug;
 }

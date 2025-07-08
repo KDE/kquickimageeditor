@@ -12,11 +12,13 @@ class SelectedItemWrapperPrivate
     friend class SelectedItemWrapper;
     friend class AnnotationDocument;
     friend class AnnotationDocumentPrivate;
+    friend class AnnotationViewport;
 public:
     SelectedItemWrapper *const q;
     AnnotationDocument *const document;
     AnnotationTool::Options options;
     HistoryItem::const_weak_ptr selectedItem;
+    QMatrix4x4 transform;
 
     SelectedItemWrapperPrivate(SelectedItemWrapper *q, AnnotationDocument *document)
         : q(q)
@@ -45,16 +47,24 @@ public:
     qreal imageDpr = 1;
     // An image size based on the canvas size and device pixel ratio.
     QSize imageSize{0, 0};
+    // base image transform
+    QMatrix4x4 transform;
+    QMatrix4x4 invertedTransform;
+    // transform for rendering annotations
+    QMatrix4x4 renderTransform;
+    // transform for processing annotation input
+    QMatrix4x4 inputTransform;
     // The base screenshot image
     QImage baseImage;
-    // A cache for a crop of the base image.
-    QImage croppedBaseImage;
+    // A cache for a cropped or transformed version of the base image.
+    QImage baseImageCache;
     // An image containing just the annotations.
     // It is separate so that we don't need to keep repainting the image underneath.
     QImage annotationsImage;
     // The last types of things to repaint. Used to determine when to emit repaintNeeded.
     AnnotationDocument::RepaintTypes lastRepaintTypes = AnnotationDocument::RepaintType::NoTypes;
     // Where a repaint is needed. Used to determine when to repaint or emit repaintNeeded.
+    // Set using untransformed document coordinates
     QRegion repaintRegion;
 
     // A temporary version of the item we want to edit so we can modify at will. This will be used
@@ -69,10 +79,16 @@ public:
         , selectedItemWrapper(new SelectedItemWrapper(q))
     {}
 
-    // Set the canvas rect, device pixel ratio, image size and reset the annotation image.
-    // The image size and image device pixel ratio are also set based on these.
-    void setCanvas(const QRectF &rect, qreal dpr);
-    void resetCanvas();
+    // Set the canvas rect, device pixel ratio and image size, then reset the images.
+    void setCanvas(const QRectF &rect, qreal dpr, const std::optional<QMatrix4x4> &newTransform = std::nullopt);
+
+    // Set the transform that should apply to the base and annotation images.
+    // The canvasRect's position should not be included in the transform as a translation even
+    // though it will often be applied to this transform as a translation when processing input
+    // and rendering. The reason why is that crops are a separate kind of operation. We may also
+    // want to support expanding the canvas to be larger than the base image in the future. This
+    // would require using the a translation to move the base image around in the canvas area.
+    void setTransform(const QMatrix4x4 &newTransform);
 
     HistoryItem::shared_ptr popCurrentItem();
 

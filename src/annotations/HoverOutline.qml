@@ -15,10 +15,6 @@ Loader {
     // This will be frequently shown and hidden when using the selection tool
     active: visible && document.tool.type === AnnotationTool.SelectTool
     visible: enabled
-    x: -root.document?.canvasRect.x ?? 0
-    y: -root.document?.canvasRect.y ?? 0
-    width: viewport.hoveredMousePath.boundingRect.width
-    height: viewport.hoveredMousePath.boundingRect.height
     sourceComponent: P.DashedOutline {
         id: outline
         // Not animated because of scaling/flickering issues when the path becomes empty
@@ -29,7 +25,11 @@ Loader {
         asynchronous: true
         svgPath: root.viewport.hoveredMousePath.svgPath
         strokeWidth: Utils.clamp(Utils.dprRound(1, Screen.devicePixelRatio),
-                                 1 / Screen.devicePixelRatio) / root.viewport.scale
+                                 1 / Screen.devicePixelRatio) / Utils.combinedScale(root.document.transform) / root.viewport.scale
         strokeColor: palette.text
+        transformOrigin: Item.TopLeft
+        transform: Matrix4x4 {
+            matrix: root.document.renderTransform
+        }
     }
 }

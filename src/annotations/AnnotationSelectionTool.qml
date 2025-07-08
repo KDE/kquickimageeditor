@@ -22,7 +22,6 @@ AnimatedLoader {
     state: shouldShow ? "active" : "inactive"
 
     sourceComponent: Item {
-        id: resizeHandles
         readonly property bool dragging: tlHandle.dragging || tHandle.dragging || trHandle.dragging
                                       || lHandle.dragging || rHandle.dragging
                                       || blHandle.dragging || bHandle.dragging || brHandle.dragging
@@ -35,45 +34,17 @@ AnimatedLoader {
 
         focus: true
 
-        // These have to be set here to avoid having a (0,0,0,0) rect.
-        Binding {
-            target: root
-            property: "x"
-            value: root.document.selectedItem.mousePath.boundingRect.x - root.document.canvasRect.x
-            when: root.shouldShow
-            restoreMode: Binding.RestoreNone
-        }
-        Binding {
-            target: root
-            property: "y"
-            value: root.document.selectedItem.mousePath.boundingRect.y - root.document.canvasRect.y
-            when: root.shouldShow
-            restoreMode: Binding.RestoreNone
-        }
-        Binding {
-            target: root
-            property: "width"
-            value: root.document.selectedItem.mousePath.boundingRect.width
-            when: root.shouldShow
-            restoreMode: Binding.RestoreNone
-        }
-        Binding {
-            target: root
-            property: "height"
-            value: root.document.selectedItem.mousePath.boundingRect.height
-            when: root.shouldShow
-            restoreMode: Binding.RestoreNone
-        }
-
         P.DashedOutline {
             id: outline
             svgPath: root.document.selectedItem.mousePath.svgPath
             // Invisible when empty because of scaling/flickering issues when the path becomes empty
             visible: !root.document.selectedItem.mousePath.empty
             strokeWidth: Utils.clamp(Utils.dprRound(1, Screen.devicePixelRatio),
-                                     1 / Screen.devicePixelRatio) / root.viewport.scale
-            x: -root.document.selectedItem.mousePath.boundingRect.x
-            y: -root.document.selectedItem.mousePath.boundingRect.y
+                                     1 / Screen.devicePixelRatio) / Utils.combinedScale(root.document.transform) / root.viewport.scale
+            transformOrigin: Item.TopLeft
+            transform: Matrix4x4 {
+                matrix: root.document.renderTransform
+            }
             containsMode: Outline.FillContains
             HoverHandler {
                 cursorShape: Qt.SizeAllCursor
@@ -109,50 +80,80 @@ AnimatedLoader {
             }
             DragHandler {
                 id: dragHandler
-                margin: Math.min(root.width, root.height) < 12 ? 0 : 4
+                property point lastDocumentPos
+                property int effectiveEdges: 0
+                margin: Math.min(handle.parent.width, handle.parent.height) < 12 ? 0 : 4
                 target: null
                 dragThreshold: 0
-                onActiveTranslationChanged: if (active) {
-                    let dx = Utils.dprRound(activeTranslation.x, Screen.devicePixelRatio) / viewport.scale
-                    let dy = Utils.dprRound(activeTranslation.y, Screen.devicePixelRatio) / viewport.scale
-                    root.document.selectedItem.transform(dx, dy, edges)
+                onActiveTranslationChanged: if (active && lastDocumentPos !== undefined) {
+                    // We use the difference between the current document position
+                    // and a stored document press position instead of activeTranslation
+                    // so that the real translation can be tracked regardless of how the view is scaled.
+                    let documentMousePos = Utils.sceneToDocumentPoint(centroid.scenePosition, root.viewport)
+                    // We want the relative mouse movement since the last onActiveTranslationChanged
+                    const map = Utils.handleResizeProperties(documentMousePos.x - lastDocumentPos.x,
+                                                             documentMousePos.y - lastDocumentPos.y,
+                                                             effectiveEdges,
+                                                             root.document)
+                    effectiveEdges = map.edges
+                    root.document.selectedItem.applyTransform(map.matrix)
+                    lastDocumentPos = documentMousePos;
                 }
-                onActiveChanged: if (!active) {
+                // DragHandler::activeChanged is emitted before DragHandler::translationChanged.
+                // HandlerPoint is completely updated, so we don't want to do onCentroidChanged.
+                // Otherwise, we would update our document press position when we don't want to.
+                onActiveChanged: if (active) {
+                    lastDocumentPos = Utils.sceneToDocumentPoint(centroid.scenePressPosition, root.viewport)
+                    effectiveEdges = handle.edges
+                } else {
                     root.document.selectedItem.commitChanges()
                 }
             }
         }
-        ResizeHandle {
-            id: tlHandle
-            edges: Qt.TopEdge | Qt.LeftEdge
-        }
-        ResizeHandle {
-            id: tHandle
-            edges: Qt.TopEdge
-        }
-        ResizeHandle {
-            id: trHandle
-            edges: Qt.TopEdge | Qt.RightEdge
-        }
-        ResizeHandle {
-            id: lHandle
-            edges: Qt.LeftEdge
-        }
-        ResizeHandle {
-            id: rHandle
-            edges: Qt.RightEdge
-        }
-        ResizeHandle {
-            id: blHandle
-            edges: Qt.BottomEdge | Qt.LeftEdge
-        }
-        ResizeHandle {
-            id: bHandle
-            edges: Qt.BottomEdge
-        }
-        ResizeHandle {
-            id: brHandle
-            edges: Qt.BottomEdge | Qt.RightEdge
+        Item {
+            id: resizeHandles
+            property rect rect: Qt.rect(0, 0, 0, 0)
+            Binding on rect {
+                value: root.document.renderTransform.mapRect(root.document.selectedItem.mousePath.boundingRect)
+                when: root.shouldShow
+                restoreMode: Binding.RestoreNone
+            }
+            x: rect.x
+            y: rect.y
+            width: rect.width
+            height: rect.height
+            ResizeHandle {
+                id: tlHandle
+                edges: Qt.TopEdge | Qt.LeftEdge
+            }
+            ResizeHandle {
+                id: tHandle
+                edges: Qt.TopEdge
+            }
+            ResizeHandle {
+                id: trHandle
+                edges: Qt.TopEdge | Qt.RightEdge
+            }
+            ResizeHandle {
+                id: lHandle
+                edges: Qt.LeftEdge
+            }
+            ResizeHandle {
+                id: rHandle
+                edges: Qt.RightEdge
+            }
+            ResizeHandle {
+                id: blHandle
+                edges: Qt.BottomEdge | Qt.LeftEdge
+            }
+            ResizeHandle {
+                id: bHandle
+                edges: Qt.BottomEdge
+            }
+            ResizeHandle {
+                id: brHandle
+                edges: Qt.BottomEdge | Qt.RightEdge
+            }
         }
         Component.onCompleted: forceActiveFocus()
     }
