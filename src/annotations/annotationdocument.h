@@ -86,20 +86,31 @@ public:
     // and canvas rect. Cannot be undone.
     void setBaseImage(const QImage &image);
 
+    /// Set the base image from the given file path.
+    Q_INVOKABLE void setBaseImage(const QString &path);
+
+    /// Set the base image from the given local file URL.
+    /// We only support local files because QImage can only load directly from local files.
+    /// This overload exists so that we don't have to convert URLs into path strings.
+    Q_INVOKABLE void setBaseImage(const QUrl &localFile);
+
     /// Hide annotations that do not intersect with the rectangle and crop the image.
     Q_INVOKABLE void cropCanvas(const QRectF &cropRect);
 
     /// Clear all annotations. Cannot be undone.
-    void clearAnnotations();
+    Q_INVOKABLE void clearAnnotations();
 
     /// Clear all annotations and the image. Cannot be undone.
-    void clear();
+    Q_INVOKABLE void clear();
 
     // Get an image containing just the annotations.
     // This is lazily computed based on an internal paint region of areas needing to be repainted.
     QImage annotationsImage() const;
 
     QImage renderToImage() const;
+
+    /// Render to an image and save it to the given path.
+    Q_INVOKABLE bool saveImage(const QString &path) const;
 
     // True when there is an item at the end of the undo stack and it is invalid.
     bool isCurrentItemValid() const;

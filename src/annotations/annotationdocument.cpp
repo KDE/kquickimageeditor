@@ -146,6 +146,16 @@ void AnnotationDocument::setBaseImage(const QImage &image)
     d->resetCanvas();
 }
 
+void AnnotationDocument::setBaseImage(const QString &path)
+{
+    setBaseImage(QImage(path));
+}
+
+void AnnotationDocument::setBaseImage(const QUrl &localFile)
+{
+    setBaseImage(QImage(localFile.toLocalFile()));
+}
+
 void AnnotationDocument::cropCanvas(const QRectF &cropRect)
 {
     // Can't crop to nothing
@@ -198,7 +208,7 @@ void AnnotationDocument::clearAnnotations()
 void AnnotationDocument::clear()
 {
     clearAnnotations();
-    setBaseImage({});
+    setBaseImage(QImage{});
 }
 
 void AnnotationDocumentPrivate::paintImageView(QPainter *painter, const QImage &image, const QRectF &viewport) const
@@ -370,6 +380,11 @@ QImage AnnotationDocument::renderToImage() const
     d->paintImageView(&painter, annotationsImage());
     painter.end();
     return image;
+}
+
+bool AnnotationDocument::saveImage(const QString &path) const
+{
+    return renderToImage().save(path);
 }
 
 QImage AnnotationDocumentPrivate::rangeImage(History::SubRange range) const
