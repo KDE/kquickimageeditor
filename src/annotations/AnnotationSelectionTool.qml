@@ -74,17 +74,6 @@ AnimatedLoader {
                                      1 / Screen.devicePixelRatio) / root.viewport.scale
             x: -root.document.selectedItem.mousePath.boundingRect.x
             y: -root.document.selectedItem.mousePath.boundingRect.y
-            pathScale: {
-                const pathBounds = root.document.selectedItem.mousePath.boundingRect
-                return Qt.size(outerStrokeScaleValue(pathBounds.width, outline.strokeWidth),
-                               outerStrokeScaleValue(pathBounds.height, outline.strokeWidth))
-            }
-            transform: Translate {
-                x: outline.outerStrokeTranslateValue(root.document.selectedItem.mousePath.boundingRect.x,
-                                                     outline.pathScale.width, outline.strokeWidth)
-                y: outline.outerStrokeTranslateValue(root.document.selectedItem.mousePath.boundingRect.y,
-                                                     outline.pathScale.height, outline.strokeWidth)
-            }
             containsMode: Outline.FillContains
             HoverHandler {
                 cursorShape: Qt.SizeAllCursor

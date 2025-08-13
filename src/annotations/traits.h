@@ -248,7 +248,7 @@ QPainterPath arrowHead(const QLineF &mainLine, qreal strokeWidth);
 QPainterPath createTextPath(const OptTuple &traits);
 
 // Get the stroke path based on the available traits.
-QPainterPath createStrokePath(const OptTuple &traits);
+QPainterPath createStrokePath(const OptTuple &traits, const QPen *otherPen = nullptr);
 
 // Constructs a mousePath based on the available traits.
 QPainterPath createInteractivePath(const OptTuple &traits);

@@ -31,16 +31,5 @@ Loader {
         strokeWidth: Utils.clamp(Utils.dprRound(1, Screen.devicePixelRatio),
                                  1 / Screen.devicePixelRatio) / root.viewport.scale
         strokeColor: palette.text
-        pathScale: {
-            const pathBounds = root.viewport.hoveredMousePath.boundingRect
-            return Qt.size(outerStrokeScaleValue(pathBounds.width, strokeWidth),
-                           outerStrokeScaleValue(pathBounds.height, strokeWidth))
-        }
-        transform: Translate {
-            x: outline.outerStrokeTranslateValue(root.viewport.hoveredMousePath.boundingRect.x,
-                                                 outline.pathScale.width, outline.strokeWidth)
-            y: outline.outerStrokeTranslateValue(root.viewport.hoveredMousePath.boundingRect.y,
-                                                 outline.pathScale.height, outline.strokeWidth)
-        }
     }
 }

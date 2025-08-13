@@ -290,19 +290,20 @@ QPainterPath Traits::createTextPath(const OptTuple &traits)
     return path;
 }
 
-QPainterPath Traits::createStrokePath(const OptTuple &traits)
+QPainterPath Traits::createStrokePath(const OptTuple &traits, const QPen *otherPen)
 {
     auto &geometry = std::get<Geometry::Opt>(traits);
     auto &stroke = std::get<Stroke::Opt>(traits);
     if (!geometry && !stroke) {
         return {};
     }
-    QPainterPathStroker stroker(stroke->pen);
+    const auto &pen = otherPen ? *otherPen : stroke->pen;
+    QPainterPathStroker stroker(pen);
     auto minPath = Traits::minPath(geometry->path); // Will always have at least 2 points.
     if (auto &arrow = std::get<Arrow::Opt>(traits)) {
         const int size = minPath.elementCount();
         const QLineF lastLine{minPath.elementAt(size - 2), minPath.elementAt(size - 1)};
-        auto arrowHead = Traits::arrowHead(lastLine, stroke->pen.widthF());
+        auto arrowHead = Traits::arrowHead(lastLine, pen.widthF());
         return stroker.createStroke(minPath) | stroker.createStroke(arrowHead);
     } else {
         return stroker.createStroke(minPath);
@@ -314,15 +315,20 @@ QPainterPath Traits::createInteractivePath(const OptTuple &traits)
     auto &geometry = std::get<Geometry::Opt>(traits);
     auto &stroke = std::get<Stroke::Opt>(traits);
     QPainterPath mousePath;
-    if (geometry && !geometry->path.isEmpty()) {
+    if (geometry && geometry->isValid()) {
         mousePath = geometry->path;
     }
     // Ensure you can click anywhere within the bounds.
     mousePath.setFillRule(Qt::WindingFill);
-    if (stroke && !stroke->path.isEmpty()) {
+    if (stroke && stroke->isValid()) {
         mousePath |= stroke->path;
     }
-
+    // If it's somehow still empty, force it to be clickable.
+    mousePath = Traits::minPath(mousePath);
+    // Add an extra 1px all around. Each bounding rect corner moves out 0.5px.
+    QPen pen{Qt::NoBrush, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin};
+    QPainterPathStroker stroker(pen);
+    mousePath |= stroker.createStroke(mousePath);
     return mousePath.simplified();
 }
 
