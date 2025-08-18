@@ -64,16 +64,19 @@ int AnnotationDocument::redoStackDepth() const
 
 bool AnnotationDocument::isModified() const
 {
-    return d->isModified && ((!d->lastSavedHistoryItem && d->history.currentItem()) || d->lastSavedHistoryItem != d->history.currentItem());
+    return d->history.isModified();
 }
 
-void AnnotationDocument::setModified(bool modified, bool manual)
+void AnnotationDocument::setModified(bool modified)
 {
-    d->isModified = modified;
-    if (manual) {
-        d->lastSavedHistoryItem = d->history.currentItem();
+    if (modified == d->history.isModified()) {
+        return;
     }
-    Q_EMIT modifiedChanged();
+    const auto undoList = d->history.undoList();
+    const auto &item = modified || undoList.empty() ? nullptr : undoList.back();
+    if (d->history.setUnmodifiedId(item)) {
+        Q_EMIT modifiedChanged();
+    }
 }
 
 QRectF AnnotationDocument::canvasRect() const
@@ -270,6 +273,7 @@ void AnnotationDocument::applyTransform(const QMatrix4x4 &matrix)
 
 void AnnotationDocument::clearAnnotations()
 {
+    auto wasModified = d->history.isModified();
     d->setTransform({});
     auto result = d->history.clearLists();
     d->tool->resetType();
@@ -277,11 +281,12 @@ void AnnotationDocument::clearAnnotations()
     deselectItem();
     if (result.undoListChanged) {
         Q_EMIT undoStackDepthChanged();
-        setModified(true, false);
     }
     if (result.redoListChanged) {
         Q_EMIT redoStackDepthChanged();
-        setModified(true, false);
+    }
+    if (wasModified != d->history.isModified()) {
+        Q_EMIT modifiedChanged();
     }
     d->setRepaintRegion(RepaintType::Annotations);
 }
@@ -486,18 +491,20 @@ bool AnnotationDocument::isCurrentItemValid() const
 
 HistoryItem::shared_ptr AnnotationDocumentPrivate::popCurrentItem()
 {
+    auto wasModified = history.isModified();
     auto result = history.pop();
     if (result.item) {
         if (result.item == selectedItemWrapper->d->selectedItem.lock()) {
             q->deselectItem();
         }
         Q_EMIT q->undoStackDepthChanged();
-        q->setModified(true, false);
         setRepaintRegion(result.item->renderRect());
     }
     if (result.redoListChanged) {
         Q_EMIT q->redoStackDepthChanged();
-        q->setModified(true, false);
+    }
+    if (wasModified != history.isModified()) {
+        Q_EMIT q->modifiedChanged();
     }
     return result.item;
 }
@@ -542,6 +549,7 @@ void AnnotationDocument::undo()
         return;
     }
 
+    auto wasModified = d->history.isModified();
     auto currentItem = d->history.currentItem();
     auto prevItem = undoCount > 1 ? undoList[undoCount - 2] : nullptr;
     d->setRepaintRegion(currentItem->renderRect());
@@ -580,7 +588,9 @@ void AnnotationDocument::undo()
 
     Q_EMIT undoStackDepthChanged();
     Q_EMIT redoStackDepthChanged();
-    setModified(true, false);
+    if (wasModified != d->history.isModified()) {
+        Q_EMIT modifiedChanged();
+    }
 }
 
 void AnnotationDocument::redo()
@@ -590,6 +600,7 @@ void AnnotationDocument::redo()
         return;
     }
 
+    auto wasModified = d->history.isModified();
     auto currentItem = d->history.currentItem();
     auto nextItem = *std::ranges::crbegin(redoList);
     d->setRepaintRegion(nextItem->renderRect());
@@ -618,7 +629,9 @@ void AnnotationDocument::redo()
 
     Q_EMIT undoStackDepthChanged();
     Q_EMIT redoStackDepthChanged();
-    setModified(true, false);
+    if (wasModified != d->history.isModified()) {
+        Q_EMIT modifiedChanged();
+    }
 }
 
 bool isAnyOfToolType(AnnotationTool::Tool type, auto... args)
@@ -632,6 +645,7 @@ void AnnotationDocument::beginItem(const QPointF &point)
         return;
     }
 
+    auto wasModified = d->history.isModified();
     // if the last item was not valid, discard it (for instance a rectangle with 0 size)
     if (!isCurrentItemValid()) {
         auto result = d->history.pop();
@@ -696,6 +710,9 @@ void AnnotationDocument::beginItem(const QPointF &point)
     d->setRepaintRegion(newItem->renderRect());
     d->addItem(newItem);
     d->selectedItemWrapper->d->setSelectedItem(newItem);
+    if (!wasModified) {
+        Q_EMIT modifiedChanged();
+    }
 }
 
 void AnnotationDocument::continueItem(const QPointF &point, ContinueOptions options)
@@ -875,14 +892,16 @@ void AnnotationDocument::deleteSelectedItem()
 
 void AnnotationDocumentPrivate::addItem(const HistoryItem::shared_ptr &item)
 {
+    auto wasModified = history.isModified();
     auto result = history.push(item);
     if (result.undoListChanged) {
         Q_EMIT q->undoStackDepthChanged();
-        q->setModified(true, false);
     }
     if (result.redoListChanged) {
         Q_EMIT q->redoStackDepthChanged();
-        q->setModified(true, false);
+    }
+    if (wasModified != history.isModified()) {
+        Q_EMIT q->modifiedChanged();
     }
 }
 
@@ -1019,9 +1038,13 @@ bool SelectedItemWrapper::commitChanges()
     }
 
     if (!selectedItem->isValid() && selectedItem == d->document->d->history.currentItem()) {
+        auto wasModified = d->document->isModified();
         auto result = d->document->d->history.pop();
         if (result.redoListChanged) {
             Q_EMIT d->document->redoStackDepthChanged();
+        }
+        if (!wasModified) {
+            Q_EMIT d->document->modifiedChanged();
         }
     } else {
         HistoryItem::setItemRelations(selectedItem, temp);

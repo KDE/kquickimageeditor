@@ -84,7 +84,7 @@ public:
     int redoStackDepth() const;
 
     bool isModified() const;
-    void setModified(bool modified, bool manual = true);
+    void setModified(bool modified = true);
 
     QRectF canvasRect() const;
 

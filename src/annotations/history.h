@@ -133,6 +133,7 @@ public:
     using RefView = std::ranges::ref_view<const History::List>;
     using ImmutableView = const std::ranges::transform_view<RefView, HistoryItem::const_shared_ptr (*)(const HistoryItem::shared_ptr &)>;
     using SubRange = std::ranges::subrange<decltype(std::declval<ImmutableView>().begin())>;
+    using IdType = size_t;
 
     struct ListsChangedResult {
         bool undoListChanged = false;
@@ -196,6 +197,22 @@ public:
     // Whether the item is visible, in the undo list and without a child also in the undo list.
     bool itemVisible(const HistoryItem::const_shared_ptr &item) const;
 
+    static inline IdType itemId(const auto &item) noexcept
+    {
+        return qHash(item.get());
+    }
+
+    // The item ID for which the history is considered unmodified.
+    // The default value is 0.
+    IdType unmodifiedId() const;
+
+    // Set the item ID for which the history is considered unmodified.
+    // Returns whether the unmodified ID changed.
+    bool setUnmodifiedId(const HistoryItem::const_shared_ptr &item);
+
+    // Whether the history is modified.
+    bool isModified() const;
+
 protected:
     friend QDebug operator<<(QDebug debug, const History &history);
     // These are not public because we need to manage the child and parent traits of each item.
@@ -204,6 +221,8 @@ protected:
 
     List m_undoList;
     List m_redoList;
+
+    IdType m_unmodifiedId = 0;
 };
 
 QDebug operator<<(QDebug debug, const History &history);

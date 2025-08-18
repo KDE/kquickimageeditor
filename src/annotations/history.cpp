@@ -289,6 +289,26 @@ bool History::itemVisible(const HistoryItem::const_shared_ptr &item) const
     return !child || std::find(m_undoList.crbegin(), m_undoList.crend(), child) == m_undoList.crend();
 }
 
+History::IdType History::unmodifiedId() const
+{
+    return m_unmodifiedId;
+}
+
+bool History::setUnmodifiedId(const HistoryItem::const_shared_ptr &item)
+{
+    const auto id = History::itemId(item);
+    if (m_unmodifiedId == id) {
+        return false;
+    }
+    m_unmodifiedId = id;
+    return true;
+}
+
+bool History::isModified() const
+{
+    return m_unmodifiedId != History::itemId(m_undoList.empty() ? nullptr : m_undoList.back());
+}
+
 bool History::eraseInvalidRedoItems()
 {
     // Erase in chronological order so that later item Parent traits become invalidated.
