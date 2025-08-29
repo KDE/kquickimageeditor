@@ -18,6 +18,127 @@
 
 namespace Traits
 {
+struct Geometry;
+struct Interactive;
+struct Visual;
+struct Stroke;
+namespace ImageEffects
+{
+class Blur;
+class Pixelate;
+}
+struct Fill;
+struct Highlight;
+struct Arrow;
+struct Text;
+struct Shadow;
+namespace Meta
+{
+struct Delete;
+struct Crop;
+struct Transform;
+}
+
+using OptTuple = std::tuple<std::optional<Geometry>,
+                            std::optional<Interactive>,
+                            std::optional<Visual>,
+                            std::optional<Stroke>,
+                            std::optional<Fill>,
+                            std::optional<Highlight>,
+                            std::optional<Arrow>,
+                            std::optional<Text>,
+                            std::optional<Shadow>,
+                            std::optional<Meta::Delete>,
+                            std::optional<Meta::Crop>,
+                            std::optional<Meta::Transform>>;
+
+struct Translation {
+    // QTransform: m31
+    // QMatrix4x4: 3,0 or m41
+    qreal dx = 0;
+    // QTransform: m32
+    // QMatrix4x4: 3,1 or m42
+    qreal dy = 0;
+};
+
+struct Scale {
+    // QTransform: m11
+    // QMatrix4x4: 0,0 or m11
+    qreal sx = 1;
+    // QTransform: m22
+    // QMatrix4x4: 1,1 or m22
+    qreal sy = 1;
+};
+
+// Undo a translation caused by scaling.
+// Scaling can also translate unless you apply an opposite translation.
+// `oldPoint` should be the position for the geometry you will apply the scale to.
+Translation unTranslateScale(qreal sx, qreal sy, const QPointF &oldPoint);
+
+Scale scaleForSize(const QSizeF &oldSize, const QSizeF &newSize);
+
+// The path, but with at least a tiny line to make it visible with a stroke when empty.
+QPainterPath minPath(const QPainterPath &path);
+
+// Get an arrow head for the given line and stroke width.
+QPainterPath arrowHead(const QLineF &mainLine, qreal strokeWidth);
+
+// Get the path based on the Text trait.
+QPainterPath createTextPath(const OptTuple &traits);
+
+// Get the stroke path based on the available traits.
+QPainterPath createStrokePath(const OptTuple &traits, const QPen *otherPen = nullptr);
+
+// Constructs a mousePath based on the available traits.
+QPainterPath createInteractivePath(const OptTuple &traits);
+
+// Constructs a visualRect based on the available traits.
+QRectF createVisualRect(const OptTuple &traits);
+
+// Excludes computationally expensive parts that aren't needed for rendering
+void fastInitOptTuple(OptTuple &traits);
+
+// Initialize an OptTuple the way a HistoryItem should have it.
+// Returns true if changes were done.
+void initOptTuple(OptTuple &traits);
+
+// Clear the given traits in the OptTuple for reinitialization.
+void clearForInit(OptTuple &traits);
+
+// clearForInit and initOptTuple
+void reInitTraits(OptTuple &traits);
+
+// Apply a transformation to the traits of OptTuple, when possible. Mainly for translations.
+// If you want to scale a path, you typically don't want to scale the stroke width, so you should
+// typically not use this for scaling. Avoids copying whole paths when only translating.
+void transformTraits(const QTransform &transform, OptTuple &traits);
+
+// Whether the std::optionals are considered valid.
+template<typename T>
+bool isValidTraitOpt(const OptTuple &traits, bool isNullValid);
+
+// Whether the traits are considered valid.
+// It is valid to not have any traits.
+bool isValid(const OptTuple &traits);
+
+// Returns whether the set of traits can actually be seen by a user.
+bool isVisible(const OptTuple &traits);
+
+// Returns whether the set of traits can be made visible even if they currently aren't.
+bool canBeVisible(const OptTuple &traits);
+
+// Returns the Geometry::path or an empty path if not available.
+QPainterPath geometryPath(const OptTuple &traits);
+
+// Returns the Geometry::path::boundingRect or an empty rect if not available.
+QRectF geometryPathBounds(const OptTuple &traits);
+
+// Returns the Interactive::path or an empty path if not available.
+QPainterPath interactivePath(const OptTuple &traits);
+
+// Returns the Visual::rect or an empty rect if not available.
+QRectF visualRect(const OptTuple &traits);
+
 // Definitions all traits should have.
 // Sometimes clang-format formats macros poorly, so I'm disabling clang-format on macros.
 // clang-format off
@@ -213,106 +334,6 @@ struct Transform {
     }
 };
 }
-
-using OptTuple = std::tuple<Geometry::Opt,
-                            Interactive::Opt,
-                            Visual::Opt,
-                            Stroke::Opt,
-                            Fill::Opt,
-                            Highlight::Opt,
-                            Arrow::Opt,
-                            Text::Opt,
-                            Shadow::Opt,
-                            Meta::Delete::Opt,
-                            Meta::Crop::Opt,
-                            Meta::Transform::Opt>;
-
-struct Translation {
-    // QTransform: m31
-    // QMatrix4x4: 3,0 or m41
-    qreal dx = 0;
-    // QTransform: m32
-    // QMatrix4x4: 3,1 or m42
-    qreal dy = 0;
-};
-
-struct Scale {
-    // QTransform: m11
-    // QMatrix4x4: 0,0 or m11
-    qreal sx = 1;
-    // QTransform: m22
-    // QMatrix4x4: 1,1 or m22
-    qreal sy = 1;
-};
-
-// Undo a translation caused by scaling.
-// Scaling can also translate unless you apply an opposite translation.
-// `oldPoint` should be the position for the geometry you will apply the scale to.
-Translation unTranslateScale(qreal sx, qreal sy, const QPointF &oldPoint);
-
-Scale scaleForSize(const QSizeF &oldSize, const QSizeF &newSize);
-
-// The path, but with at least a tiny line to make it visible with a stroke when empty.
-QPainterPath minPath(const QPainterPath &path);
-
-// Get an arrow head for the given line and stroke width.
-QPainterPath arrowHead(const QLineF &mainLine, qreal strokeWidth);
-
-// Get the path based on the Text trait.
-QPainterPath createTextPath(const OptTuple &traits);
-
-// Get the stroke path based on the available traits.
-QPainterPath createStrokePath(const OptTuple &traits, const QPen *otherPen = nullptr);
-
-// Constructs a mousePath based on the available traits.
-QPainterPath createInteractivePath(const OptTuple &traits);
-
-// Constructs a visualRect based on the available traits.
-QRectF createVisualRect(const OptTuple &traits);
-
-// Excludes computationally expensive parts that aren't needed for rendering
-void fastInitOptTuple(OptTuple &traits);
-
-// Initialize an OptTuple the way a HistoryItem should have it.
-// Returns true if changes were done.
-void initOptTuple(OptTuple &traits);
-
-// Clear the given traits in the OptTuple for reinitialization.
-void clearForInit(OptTuple &traits);
-
-// clearForInit and initOptTuple
-void reInitTraits(OptTuple &traits);
-
-// Apply a transformation to the traits of OptTuple, when possible. Mainly for translations.
-// If you want to scale a path, you typically don't want to scale the stroke width, so you should
-// typically not use this for scaling. Avoids copying whole paths when only translating.
-void transformTraits(const QTransform &transform, OptTuple &traits);
-
-// Whether the std::optionals are considered valid.
-template<typename T>
-bool isValidTraitOpt(const OptTuple &traits, bool isNullValid);
-
-// Whether the traits are considered valid.
-// It is valid to not have any traits.
-bool isValid(const OptTuple &traits);
-
-// Returns whether the set of traits can actually be seen by a user.
-bool isVisible(const OptTuple &traits);
-
-// Returns whether the set of traits can be made visible even if they currently aren't.
-bool canBeVisible(const OptTuple &traits);
-
-// Returns the Geometry::path or an empty path if not available.
-QPainterPath geometryPath(const OptTuple &traits);
-
-// Returns the Geometry::path::boundingRect or an empty rect if not available.
-QRectF geometryPathBounds(const OptTuple &traits);
-
-// Returns the Interactive::path or an empty path if not available.
-QPainterPath interactivePath(const OptTuple &traits);
-
-// Returns the Visual::rect or an empty rect if not available.
-QRectF visualRect(const OptTuple &traits);
 
 #undef COMMON_TRAIT_DEFS
 
