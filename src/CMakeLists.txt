@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 add_library(KQuickImageEditor)
+ecm_generate_qdoc(KQuickImageEditor kquickimageeditor.qdocconf)
 
 ecm_add_qml_module(KQuickImageEditor
     URI "org.kde.kquickimageeditor"
