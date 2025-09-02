@@ -33,7 +33,7 @@ find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
 
 if(NOT WIN32)
-    find_package(OpenCV COMPONENTS core imgproc)
+    find_package(OpenCV 4.7 COMPONENTS core imgproc)
     if (NOT OpenCV_DIR)
         message("OpenCV is missing. Build with OpenCV to get better blur performance.")
     endif()
