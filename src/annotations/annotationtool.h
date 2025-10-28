@@ -11,6 +11,8 @@
 #include <qqmlregistration.h>
 #include "kquickimageeditor_export.h"
 
+class AnnotationToolPrivate;
+
 /**
  * This is the data structure that controls the creation of the next item. From qml its paramenter
  * will be set by the app toolbars, and then drawing on the screen with the mouse will lead to the
@@ -35,6 +37,7 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationTool : public QObject
     Q_PROPERTY(QColor fontColor READ fontColor WRITE setFontColor RESET resetFontColor NOTIFY fontColorChanged)
     Q_PROPERTY(int number READ number WRITE setNumber RESET resetNumber NOTIFY numberChanged)
     Q_PROPERTY(bool shadow READ hasShadow WRITE setShadow RESET resetShadow NOTIFY shadowChanged)
+    Q_PROPERTY(QRectF geometry READ geometry WRITE setGeometry RESET resetGeometry NOTIFY geometryChanged)
 
 public:
     /**
@@ -44,6 +47,7 @@ public:
     enum Tool {
         NoTool,
         // Meta tools
+        CropTool,
         SelectTool,
         // Creation tools
         FreehandTool,
@@ -73,6 +77,11 @@ public:
         TextOption = 1 << 4,
         NumberOption = 1 << 5,
         ShadowOption = 1 << 6,
+        GeometryOption = 1 << 7,
+        TranslateOption = 1 << 8,
+        ResizeOption = 1 << 9,
+        RotateOption = 1 << 10,
+        TransformOption = TranslateOption | ResizeOption | RotateOption,
     };
     Q_DECLARE_FLAGS(Options, Option)
     Q_FLAG(Options)
@@ -126,6 +135,10 @@ public:
     void setShadow(bool shadow);
     void resetShadow();
 
+    QRectF geometry() const;
+    void setGeometry(const QRectF &rect);
+    void resetGeometry();
+
 Q_SIGNALS:
     void typeChanged();
     void optionsChanged();
@@ -137,39 +150,10 @@ Q_SIGNALS:
     void fontColorChanged(const QColor &color);
     void numberChanged(const int number);
     void shadowChanged(bool hasShadow);
+    void geometryChanged(const QRectF &rect);
 
 private:
-    static constexpr AnnotationTool::Options optionsForType(AnnotationTool::Tool type);
-
-    static constexpr int defaultStrokeWidthForType(AnnotationTool::Tool type);
-    int strokeWidthForType(Tool type) const;
-    void setStrokeWidthForType(int width, Tool type);
-
-    static constexpr QColor defaultStrokeColorForType(AnnotationTool::Tool type);
-    QColor strokeColorForType(Tool type) const;
-    void setStrokeColorForType(const QColor &color, Tool type);
-
-    static constexpr QColor defaultFillColorForType(AnnotationTool::Tool type);
-    QColor fillColorForType(Tool type) const;
-    void setFillColorForType(const QColor &color, Tool type);
-
-    static constexpr qreal defaultStrengthForType(AnnotationTool::Tool type);
-    qreal strengthForType(Tool type) const;
-    void setStrengthForType(qreal strength, Tool type);
-
-    QFont fontForType(Tool type) const;
-    void setFontForType(const QFont &font, Tool type);
-
-    static constexpr QColor defaultFontColorForType(AnnotationTool::Tool type);
-    QColor fontColorForType(Tool type) const;
-    void setFontColorForType(const QColor &color, Tool type);
-
-    bool typeHasShadow(Tool type) const;
-    void setTypeHasShadow(Tool type, bool shadow);
-
-    Tool m_type = Tool::NoTool;
-    Options m_options = Option::NoOptions;
-    int m_number = 1;
+    std::unique_ptr<AnnotationToolPrivate> d;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(AnnotationTool::Options)

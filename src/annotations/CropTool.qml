@@ -14,20 +14,25 @@ Loader {
     id: root
     required property AnnotationViewport viewport
     readonly property AnnotationDocument document: viewport.document
+    readonly property AnnotationTool tool: document?.tool ?? null
     visible: active
     sourceComponent: Item {
         id: baseItem
-        readonly property rect selectionRect: rectNormalized(selectionItem)
+        Binding {
+            target: root.tool
+            property: "geometry"
+            value: baseItem.rectNormalized(selectionItem)
+            when: baseItem.dragging
+            restoreMode: Binding.RestoreNone
+        }
+        readonly property bool dragging: bgDragHandler.active
+            || tlHandle.dragging || tHandle.dragging || trHandle.dragging
+            || lHandle.dragging || selectionDragHandler.active || rHandle.dragging
+            || blHandle.dragging || bHandle.dragging || brHandle.dragging
 
         function acceptCrop(): void {
-            document.cropCanvas(selectionRect)
-            resetItemRect(selectionItem)
-        }
-        function resetItemRect(item: Item): void {
-            item.x = 0
-            item.y = 0
-            item.width = 0
-            item.height = 0
+            document.cropCanvas(root.tool.geometry)
+            root.tool.geometry = undefined
         }
         function itemRect(item: Item): rect {
             return Qt.rect(item.x, item.y, item.width, item.height)
@@ -93,6 +98,7 @@ Loader {
             cursorShape: Qt.CrossCursor
         }
         DragHandler {
+            id: bgDragHandler
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             target: null
             dragThreshold: 0
@@ -112,9 +118,6 @@ Loader {
                 selectionItem.height = activeTranslation.y / root.viewport.scale
                 setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
             }
-            onActiveChanged: if (!active) {
-                setItemRect(selectionItem, selectionRect)
-            }
         }
         PointHandler {
             id: pointHandler
@@ -126,7 +129,7 @@ Loader {
         TapHandler {
             acceptedButtons: Qt.RightButton
             onSingleTapped: (eventPoint, button) => {
-                resetItemRect(selectionItem)
+                root.tool.geometry = undefined
             }
         }
         Keys.onPressed: (event) => {
@@ -134,7 +137,7 @@ Loader {
                 acceptCrop()
                 event.accepted = true
             } else if (event.matches(StandardKey.Cancel)) {
-                resetItemRect(selectionItem)
+                root.tool.geometry = undefined
                 event.accepted = true
             }
         }
@@ -156,43 +159,63 @@ Loader {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: selectionItem.height < 0 ? selectionItem.bottom : selectionItem.top
+            height: root.tool.geometry.top
         }
         Overlay { // bottom
             id: bottomOverlay
             anchors.left: parent.left
-            anchors.top: selectionItem.height < 0 ? selectionItem.top : selectionItem.bottom
             anchors.right: parent.right
             anchors.bottom: parent.bottom
+            height: parent.height - root.tool.geometry.bottom
         }
         Overlay { // left
             anchors {
                 left: topOverlay.left
                 top: topOverlay.bottom
-                right: selectionItem.width < 0 ? selectionItem.right : selectionItem.left
                 bottom: bottomOverlay.top
             }
+            width: root.tool.geometry.left
         }
         Overlay { // right
             anchors {
-                left: selectionItem.width < 0 ? selectionItem.left : selectionItem.right
                 top: topOverlay.bottom
                 right: topOverlay.right
                 bottom: bottomOverlay.top
             }
+            width: parent.width - root.tool.geometry.right
         }
 
         Item { // Can have negative geometry, so we don't put visuals or handlers in here
             id: selectionItem
             visible: width !== 0 || height !== 0
+            Binding on x {
+                value: root.tool.geometry.x
+                when: !baseItem.dragging
+                restoreMode: Binding.RestoreNone
+            }
+            Binding on y {
+                value: root.tool.geometry.y
+                when: !baseItem.dragging
+                restoreMode: Binding.RestoreNone
+            }
+            Binding on width {
+                value: root.tool.geometry.width
+                when: !baseItem.dragging
+                restoreMode: Binding.RestoreNone
+            }
+            Binding on height {
+                value: root.tool.geometry.height
+                when: !baseItem.dragging
+                restoreMode: Binding.RestoreNone
+            }
         }
 
         Outline {
             pathHints: ShapePath.PathLinear
-            x: selectionRect.x - strokeWidth
-            y: selectionRect.y - strokeWidth
-            width: selectionRect.width + strokeWidth * 2
-            height: selectionRect.height + strokeWidth * 2
+            x: root.tool.geometry.x - strokeWidth
+            y: root.tool.geometry.y - strokeWidth
+            width: root.tool.geometry.width + strokeWidth * 2
+            height: root.tool.geometry.height + strokeWidth * 2
             strokeWidth: Utils.clamp(Utils.dprRound(1, Screen.devicePixelRatio),
                                      1 / Screen.devicePixelRatio) / root.viewport.scale
             strokeColor: if (enabled) {
@@ -209,11 +232,11 @@ Loader {
                 dragThreshold: 0
                 xAxis {
                     minimum: 0
-                    maximum: baseItem.width - selectionRect.width
+                    maximum: baseItem.width - root.tool.geometry.width
                 }
                 yAxis {
                     minimum: 0
-                    maximum: baseItem.height - selectionRect.height
+                    maximum: baseItem.height - root.tool.geometry.height
                 }
             }
             TapHandler {
@@ -226,11 +249,12 @@ Loader {
 
         component ResizeHandle: P.Handle {
             id: handle
-            x: selectionRect.x + relativeXForEdges(selectionRect, edges)
+            x: root.tool.geometry.x + relativeXForEdges(root.tool.geometry, edges)
                 + xOffsetForEdges(strokeWidth / 2, edges)
-            y: selectionRect.y + relativeYForEdges(selectionRect, edges)
+            y: root.tool.geometry.y + relativeYForEdges(root.tool.geometry, edges)
                 + yOffsetForEdges(strokeWidth / 2, edges)
             visible: selectionItem.visible
+            readonly property bool dragging: dragHandler.active
 
             HoverHandler {
                 margin: dragHandler.margin
@@ -245,7 +269,7 @@ Loader {
             DragHandler {
                 id: dragHandler
                 target: null
-                margin: Math.min(selectionRect.width, selectionRect.height) < 12 ? 0 : 4
+                margin: Math.min(root.tool.geometry.width, root.tool.geometry.height) < 12 ? 0 : 4
                 dragThreshold: 0
                 xAxis {
                     enabled: handle.edges & (Qt.LeftEdge | Qt.RightEdge)
@@ -276,9 +300,6 @@ Loader {
                         }
                         setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
                     }
-                }
-                onActiveChanged: if (!active) {
-                    setItemRect(selectionItem, selectionRect)
                 }
             }
         }

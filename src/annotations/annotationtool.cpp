@@ -9,6 +9,46 @@
 using enum AnnotationTool::Tool;
 using enum AnnotationTool::Option;
 
+class AnnotationToolPrivate
+{
+public:
+    static constexpr AnnotationTool::Options optionsForType(AnnotationTool::Tool type);
+
+    static constexpr int defaultStrokeWidthForType(AnnotationTool::Tool type);
+    int strokeWidthForType(AnnotationTool::Tool type) const;
+    void setStrokeWidthForType(int width, AnnotationTool::Tool type);
+
+    static constexpr QColor defaultStrokeColorForType(AnnotationTool::Tool type);
+    QColor strokeColorForType(AnnotationTool::Tool type) const;
+    void setStrokeColorForType(const QColor &color, AnnotationTool::Tool type);
+
+    static constexpr QColor defaultFillColorForType(AnnotationTool::Tool type);
+    QColor fillColorForType(AnnotationTool::Tool type) const;
+    void setFillColorForType(const QColor &color, AnnotationTool::Tool type);
+
+    static constexpr qreal defaultStrengthForType(AnnotationTool::Tool type);
+    qreal strengthForType(AnnotationTool::Tool type) const;
+    void setStrengthForType(qreal strength, AnnotationTool::Tool type);
+
+    QFont fontForType(AnnotationTool::Tool type) const;
+    void setFontForType(const QFont &font, AnnotationTool::Tool type);
+
+    static constexpr QColor defaultFontColorForType(AnnotationTool::Tool type);
+    QColor fontColorForType(AnnotationTool::Tool type) const;
+    void setFontColorForType(const QColor &color, AnnotationTool::Tool type);
+
+    bool typeHasShadow(AnnotationTool::Tool type) const;
+    void setTypeHasShadow(AnnotationTool::Tool type, bool shadow);
+
+    QRectF geometryForType(AnnotationTool::Tool type) const;
+    void setGeometryForType(const QRectF &rect, AnnotationTool::Tool type);
+
+    AnnotationTool::Tool type = AnnotationTool::NoTool;
+    AnnotationTool::Options options = AnnotationTool::Option::NoOptions;
+    int number = 1;
+    QRectF cropGeometry;
+};
+
 // Default value macros
 
 #define DEFAULT_STROKE_WIDTH(ToolName) case ToolName##Tool: { return AnnotationConfig::default##ToolName##StrokeWidthValue(); }
@@ -43,6 +83,7 @@ using enum AnnotationTool::Option;
 
 AnnotationTool::AnnotationTool(QObject *parent)
     : QObject(parent)
+    , d(std::make_unique<AnnotationToolPrivate>())
 {
 }
 
@@ -53,66 +94,72 @@ AnnotationTool::~AnnotationTool()
 
 AnnotationTool::Tool AnnotationTool::type() const
 {
-    return m_type;
+    return d->type;
 }
 
 void AnnotationTool::setType(AnnotationTool::Tool type)
 {
-    if (m_type == type) {
+    if (d->type == type) {
         return;
     }
 
-    auto oldType = m_type;
-    m_type = type;
+    auto oldType = d->type;
+    d->type = type;
     AnnotationConfig::setAnnotationToolType(type);
     Q_EMIT typeChanged();
 
-    auto newOptions = optionsForType(type);
-    if (m_options != newOptions) {
-        m_options = newOptions;
+    auto newOptions = AnnotationToolPrivate::optionsForType(type);
+    if (d->options != newOptions) {
+        d->options = newOptions;
         Q_EMIT optionsChanged();
     }
 
-    const auto &oldStrokeWidth = strokeWidthForType(oldType);
-    const auto &newStrokeWidth = strokeWidthForType(type);
+    const auto &oldStrokeWidth = d->strokeWidthForType(oldType);
+    const auto &newStrokeWidth = d->strokeWidthForType(type);
     if (oldStrokeWidth != newStrokeWidth) {
         Q_EMIT strokeWidthChanged(newStrokeWidth);
     }
 
-    const auto &oldStrokeColor = strokeColorForType(oldType);
-    const auto &newStrokeColor = strokeColorForType(type);
+    const auto &oldStrokeColor = d->strokeColorForType(oldType);
+    const auto &newStrokeColor = d->strokeColorForType(type);
     if (oldStrokeColor != newStrokeColor) {
         Q_EMIT strokeColorChanged(newStrokeColor);
     }
 
-    const auto &oldFillColor = fillColorForType(oldType);
-    const auto &newFillColor = fillColorForType(type);
+    const auto &oldFillColor = d->fillColorForType(oldType);
+    const auto &newFillColor = d->fillColorForType(type);
     if (oldFillColor != newFillColor) {
         Q_EMIT fillColorChanged(newFillColor);
     }
 
-    const auto &oldStrength = strengthForType(oldType);
-    const auto &newStrength = strengthForType(type);
+    const auto &oldStrength = d->strengthForType(oldType);
+    const auto &newStrength = d->strengthForType(type);
     if (oldStrength != newStrength) {
         Q_EMIT strengthChanged(newStrength);
     }
 
-    const auto &oldFont = fontForType(oldType);
-    const auto &newFont = fontForType(type);
+    const auto &oldFont = d->fontForType(oldType);
+    const auto &newFont = d->fontForType(type);
     if (oldFont != newFont) {
         Q_EMIT fontChanged(newFont);
     }
 
-    const auto &oldFontColor = fontColorForType(oldType);
-    const auto &newFontColor = fontColorForType(type);
+    const auto &oldFontColor = d->fontColorForType(oldType);
+    const auto &newFontColor = d->fontColorForType(type);
     if (oldFontColor != newFontColor) {
         Q_EMIT fontColorChanged(newFontColor);
     }
 
-    const auto &oldShadow = typeHasShadow(oldType);
-    const auto &newShadow = typeHasShadow(type);
+    const auto &oldShadow = d->typeHasShadow(oldType);
+    const auto &newShadow = d->typeHasShadow(type);
     if (oldShadow != newShadow) {
         Q_EMIT shadowChanged(newShadow);
+    }
+
+    const auto &oldGeometry = d->geometryForType(oldType);
+    const auto &newGeometry = d->geometryForType(type);
+    if (oldGeometry != newGeometry) {
+        Q_EMIT geometryChanged(newGeometry);
     }
 }
 
@@ -123,44 +170,47 @@ void AnnotationTool::resetType()
 
 bool AnnotationTool::isNoTool() const
 {
-    return m_type == NoTool;
+    return d->type == NoTool;
 }
 
 bool AnnotationTool::isMetaTool() const
 {
-    return m_type > NoTool && m_type < FreehandTool;
+    return d->type > NoTool && d->type < FreehandTool;
 }
 
 bool AnnotationTool::isCreationTool() const
 {
-    return m_type > SelectTool && m_type < NTools;
+    return d->type > SelectTool && d->type < NTools;
 }
 
 AnnotationTool::Options AnnotationTool::options() const
 {
-    return m_options;
+    return d->options;
 }
 
-constexpr AnnotationTool::Options AnnotationTool::optionsForType(AnnotationTool::Tool type)
+constexpr AnnotationTool::Options AnnotationToolPrivate::optionsForType(AnnotationTool::Tool type)
 {
     switch (type) {
+    case CropTool:
+    case SelectTool:
+        return GeometryOption;
     case HighlighterTool:
-        return StrokeOption;
+        return {StrokeOption, TransformOption};
     case FreehandTool:
     case LineTool:
     case ArrowTool:
-        return {StrokeOption, ShadowOption};
+        return {StrokeOption, ShadowOption, TransformOption};
     case RectangleTool:
     case EllipseTool:
-        return {StrokeOption, ShadowOption, FillOption};
+        return {StrokeOption, ShadowOption, FillOption, TransformOption};
     case BlurTool:
-        return {StrengthOption};
+        return {StrengthOption, TransformOption};
     case PixelateTool:
-        return {StrengthOption};
+        return {StrengthOption, TransformOption};
     case TextTool:
-        return {FontOption, TextOption, ShadowOption};
+        return {FontOption, TextOption, ShadowOption, TranslateOption};
     case NumberTool:
-        return {FillOption, ShadowOption, FontOption, NumberOption};
+        return {FillOption, ShadowOption, FontOption, NumberOption, TranslateOption};
     default:
         return NoOptions;
     }
@@ -168,10 +218,10 @@ constexpr AnnotationTool::Options AnnotationTool::optionsForType(AnnotationTool:
 
 int AnnotationTool::strokeWidth() const
 {
-    return strokeWidthForType(m_type);
+    return d->strokeWidthForType(d->type);
 }
 
-constexpr int AnnotationTool::defaultStrokeWidthForType(AnnotationTool::Tool type)
+constexpr int AnnotationToolPrivate::defaultStrokeWidthForType(AnnotationTool::Tool type)
 {
     switch (type) {
         DEFAULT_STROKE_WIDTH(Freehand)
@@ -185,7 +235,7 @@ constexpr int AnnotationTool::defaultStrokeWidthForType(AnnotationTool::Tool typ
     }
 }
 
-int AnnotationTool::strokeWidthForType(AnnotationTool::Tool type) const
+int AnnotationToolPrivate::strokeWidthForType(AnnotationTool::Tool type) const
 {
     switch (type) {
     case FreehandTool:
@@ -207,15 +257,15 @@ int AnnotationTool::strokeWidthForType(AnnotationTool::Tool type) const
 
 void AnnotationTool::setStrokeWidth(int width)
 {
-    if (!m_options.testFlag(Option::StrokeOption) || strokeWidth() == width) {
+    if (!d->options.testFlag(Option::StrokeOption) || strokeWidth() == width) {
         return;
     }
 
-    setStrokeWidthForType(width, m_type);
+    d->setStrokeWidthForType(width, d->type);
     Q_EMIT strokeWidthChanged(width);
 }
 
-void AnnotationTool::setStrokeWidthForType(int width, AnnotationTool::Tool type)
+void AnnotationToolPrivate::setStrokeWidthForType(int width, AnnotationTool::Tool type)
 {
     switch (type) {
         SET_STROKE_WIDTH(Freehand)
@@ -231,15 +281,15 @@ void AnnotationTool::setStrokeWidthForType(int width, AnnotationTool::Tool type)
 
 void AnnotationTool::resetStrokeWidth()
 {
-    setStrokeWidth(defaultStrokeWidthForType(m_type));
+    setStrokeWidth(d->defaultStrokeWidthForType(d->type));
 }
 
 QColor AnnotationTool::strokeColor() const
 {
-    return strokeColorForType(m_type);
+    return d->strokeColorForType(d->type);
 }
 
-constexpr QColor AnnotationTool::defaultStrokeColorForType(AnnotationTool::Tool type)
+constexpr QColor AnnotationToolPrivate::defaultStrokeColorForType(AnnotationTool::Tool type)
 {
     switch (type) {
         DEFAULT_STROKE_COLOR(Freehand)
@@ -253,7 +303,7 @@ constexpr QColor AnnotationTool::defaultStrokeColorForType(AnnotationTool::Tool 
     }
 }
 
-QColor AnnotationTool::strokeColorForType(AnnotationTool::Tool type) const
+QColor AnnotationToolPrivate::strokeColorForType(AnnotationTool::Tool type) const
 {
     switch (type) {
     case FreehandTool:
@@ -275,15 +325,15 @@ QColor AnnotationTool::strokeColorForType(AnnotationTool::Tool type) const
 
 void AnnotationTool::setStrokeColor(const QColor &color)
 {
-    if (!m_options.testFlag(Option::StrokeOption) || strokeColor() == color) {
+    if (!d->options.testFlag(Option::StrokeOption) || strokeColor() == color) {
         return;
     }
 
-    setStrokeColorForType(color, m_type);
+    d->setStrokeColorForType(color, d->type);
     Q_EMIT strokeColorChanged(color);
 }
 
-void AnnotationTool::setStrokeColorForType(const QColor &color, AnnotationTool::Tool type)
+void AnnotationToolPrivate::setStrokeColorForType(const QColor &color, AnnotationTool::Tool type)
 {
     switch (type) {
         SET_STROKE_COLOR(Freehand)
@@ -299,15 +349,15 @@ void AnnotationTool::setStrokeColorForType(const QColor &color, AnnotationTool::
 
 void AnnotationTool::resetStrokeColor()
 {
-    setStrokeColor(defaultStrokeColorForType(m_type));
+    setStrokeColor(d->defaultStrokeColorForType(d->type));
 }
 
 QColor AnnotationTool::fillColor() const
 {
-    return fillColorForType(m_type);
+    return d->fillColorForType(d->type);
 }
 
-constexpr QColor AnnotationTool::defaultFillColorForType(AnnotationTool::Tool type)
+constexpr QColor AnnotationToolPrivate::defaultFillColorForType(AnnotationTool::Tool type)
 {
     switch (type) {
         DEFAULT_FILL_COLOR(Rectangle)
@@ -318,7 +368,7 @@ constexpr QColor AnnotationTool::defaultFillColorForType(AnnotationTool::Tool ty
     }
 }
 
-QColor AnnotationTool::fillColorForType(AnnotationTool::Tool type) const
+QColor AnnotationToolPrivate::fillColorForType(AnnotationTool::Tool type) const
 {
     switch (type) {
     case RectangleTool:
@@ -334,15 +384,15 @@ QColor AnnotationTool::fillColorForType(AnnotationTool::Tool type) const
 
 void AnnotationTool::setFillColor(const QColor &color)
 {
-    if (!m_options.testFlag(Option::FillOption) || fillColor() == color) {
+    if (!d->options.testFlag(Option::FillOption) || fillColor() == color) {
         return;
     }
 
-    setFillColorForType(color, m_type);
+    d->setFillColorForType(color, d->type);
     Q_EMIT fillColorChanged(color);
 }
 
-void AnnotationTool::setFillColorForType(const QColor &color, AnnotationTool::Tool type)
+void AnnotationToolPrivate::setFillColorForType(const QColor &color, AnnotationTool::Tool type)
 {
     switch (type) {
         SET_FILL_COLOR(Rectangle)
@@ -355,15 +405,15 @@ void AnnotationTool::setFillColorForType(const QColor &color, AnnotationTool::To
 
 void AnnotationTool::resetFillColor()
 {
-    setFillColor(defaultFillColorForType(m_type));
+    setFillColor(d->defaultFillColorForType(d->type));
 }
 
 qreal AnnotationTool::strength() const
 {
-    return strengthForType(m_type);
+    return d->strengthForType(d->type);
 }
 
-constexpr qreal AnnotationTool::defaultStrengthForType(AnnotationTool::Tool type)
+constexpr qreal AnnotationToolPrivate::defaultStrengthForType(AnnotationTool::Tool type)
 {
     switch (type) {
     case BlurTool:
@@ -375,7 +425,7 @@ constexpr qreal AnnotationTool::defaultStrengthForType(AnnotationTool::Tool type
     }
 }
 
-qreal AnnotationTool::strengthForType(AnnotationTool::Tool type) const
+qreal AnnotationToolPrivate::strengthForType(AnnotationTool::Tool type) const
 {
     switch (type) {
     case BlurTool:
@@ -389,15 +439,15 @@ qreal AnnotationTool::strengthForType(AnnotationTool::Tool type) const
 
 void AnnotationTool::setStrength(qreal strength)
 {
-    if (!m_options.testFlag(Option::StrengthOption) || this->strength() == strength) {
+    if (!d->options.testFlag(Option::StrengthOption) || this->strength() == strength) {
         return;
     }
 
-    setStrengthForType(strength, m_type);
+    d->setStrengthForType(strength, d->type);
     Q_EMIT strengthChanged(strength);
 }
 
-void AnnotationTool::setStrengthForType(qreal strength, AnnotationTool::Tool type)
+void AnnotationToolPrivate::setStrengthForType(qreal strength, AnnotationTool::Tool type)
 {
     switch (type) {
     case BlurTool:
@@ -413,15 +463,15 @@ void AnnotationTool::setStrengthForType(qreal strength, AnnotationTool::Tool typ
 
 void AnnotationTool::resetStrength()
 {
-    setStrength(defaultStrengthForType(m_type));
+    setStrength(d->defaultStrengthForType(d->type));
 }
 
 QFont AnnotationTool::font() const
 {
-    return fontForType(m_type);
+    return d->fontForType(d->type);
 }
 
-QFont AnnotationTool::fontForType(AnnotationTool::Tool type) const
+QFont AnnotationToolPrivate::fontForType(AnnotationTool::Tool type) const
 {
     switch (type) {
     case TextTool:
@@ -435,15 +485,15 @@ QFont AnnotationTool::fontForType(AnnotationTool::Tool type) const
 
 void AnnotationTool::setFont(const QFont &font)
 {
-    if (!m_options.testFlag(Option::FontOption) || this->font() == font) {
+    if (!d->options.testFlag(Option::FontOption) || this->font() == font) {
         return;
     }
 
-    setFontForType(font, m_type);
+    d->setFontForType(font, d->type);
     Q_EMIT fontChanged(font);
 }
 
-void AnnotationTool::setFontForType(const QFont &font, AnnotationTool::Tool type)
+void AnnotationToolPrivate::setFontForType(const QFont &font, AnnotationTool::Tool type)
 {
     switch (type) {
         SET_FONT(Text)
@@ -460,10 +510,10 @@ void AnnotationTool::resetFont()
 
 QColor AnnotationTool::fontColor() const
 {
-    return fontColorForType(m_type);
+    return d->fontColorForType(d->type);
 }
 
-constexpr QColor AnnotationTool::defaultFontColorForType(AnnotationTool::Tool type)
+constexpr QColor AnnotationToolPrivate::defaultFontColorForType(AnnotationTool::Tool type)
 {
     switch (type) {
         DEFAULT_FONT_COLOR(Text)
@@ -473,7 +523,7 @@ constexpr QColor AnnotationTool::defaultFontColorForType(AnnotationTool::Tool ty
     }
 }
 
-QColor AnnotationTool::fontColorForType(AnnotationTool::Tool type) const
+QColor AnnotationToolPrivate::fontColorForType(AnnotationTool::Tool type) const
 {
     switch (type) {
     case TextTool:
@@ -487,15 +537,15 @@ QColor AnnotationTool::fontColorForType(AnnotationTool::Tool type) const
 
 void AnnotationTool::setFontColor(const QColor &color)
 {
-    if (!m_options.testFlag(Option::FontOption) || fontColor() == color) {
+    if (!d->options.testFlag(Option::FontOption) || fontColor() == color) {
         return;
     }
 
-    setFontColorForType(color, m_type);
+    d->setFontColorForType(color, d->type);
     Q_EMIT fontColorChanged(color);
 }
 
-void AnnotationTool::setFontColorForType(const QColor &color, AnnotationTool::Tool type)
+void AnnotationToolPrivate::setFontColorForType(const QColor &color, AnnotationTool::Tool type)
 {
     switch (type) {
         SET_FONT_COLOR(Text)
@@ -507,21 +557,21 @@ void AnnotationTool::setFontColorForType(const QColor &color, AnnotationTool::To
 
 void AnnotationTool::resetFontColor()
 {
-    setFontColor(defaultFontColorForType(m_type));
+    setFontColor(d->defaultFontColorForType(d->type));
 }
 
 int AnnotationTool::number() const
 {
-    return m_number;
+    return d->number;
 }
 
 void AnnotationTool::setNumber(int number)
 {
-    if (m_number == number) {
+    if (d->number == number) {
         return;
     }
 
-    m_number = number;
+    d->number = number;
     Q_EMIT numberChanged(number);
 }
 
@@ -530,7 +580,7 @@ void AnnotationTool::resetNumber()
     setNumber(1);
 }
 
-bool AnnotationTool::typeHasShadow(AnnotationTool::Tool type) const
+bool AnnotationToolPrivate::typeHasShadow(AnnotationTool::Tool type) const
 {
     switch (type) {
     case FreehandTool:
@@ -554,10 +604,10 @@ bool AnnotationTool::typeHasShadow(AnnotationTool::Tool type) const
 
 bool AnnotationTool::hasShadow() const
 {
-    return typeHasShadow(m_type);
+    return d->typeHasShadow(d->type);
 }
 
-void AnnotationTool::setTypeHasShadow(AnnotationTool::Tool type, bool shadow)
+void AnnotationToolPrivate::setTypeHasShadow(AnnotationTool::Tool type, bool shadow)
 {
     switch (type) {
         SET_SHADOW(Freehand)
@@ -574,17 +624,57 @@ void AnnotationTool::setTypeHasShadow(AnnotationTool::Tool type, bool shadow)
 
 void AnnotationTool::setShadow(bool shadow)
 {
-    if (!m_options.testFlag(Option::ShadowOption) || hasShadow() == shadow) {
+    if (!d->options.testFlag(Option::ShadowOption) || hasShadow() == shadow) {
         return;
     }
 
-    setTypeHasShadow(m_type, shadow);
+    d->setTypeHasShadow(d->type, shadow);
     Q_EMIT shadowChanged(shadow);
 }
 
 void AnnotationTool::resetShadow()
 {
     setShadow(true);
+}
+
+QRectF AnnotationToolPrivate::geometryForType(AnnotationTool::Tool type) const
+{
+    switch (type) {
+    case CropTool:
+        return cropGeometry;
+    default:
+        return {};
+    }
+}
+
+QRectF AnnotationTool::geometry() const
+{
+    return d->geometryForType(d->type);
+}
+
+void AnnotationToolPrivate::setGeometryForType(const QRectF &rect, AnnotationTool::Tool type)
+{
+    switch (type) {
+    case CropTool:
+        cropGeometry = rect;
+        return;
+    default:
+        return;
+    }
+}
+
+void AnnotationTool::setGeometry(const QRectF &rect)
+{
+    if (!d->options.testFlag(Option::GeometryOption) || geometry() == rect) {
+        return;
+    }
+    d->setGeometryForType(rect, d->type);
+    Q_EMIT geometryChanged(rect);
+}
+
+void AnnotationTool::resetGeometry()
+{
+    setGeometry({});
 }
 
 #include <moc_annotationtool.cpp>
