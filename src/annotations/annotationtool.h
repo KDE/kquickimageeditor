@@ -38,6 +38,7 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationTool : public QObject
     Q_PROPERTY(int number READ number WRITE setNumber RESET resetNumber NOTIFY numberChanged)
     Q_PROPERTY(bool shadow READ hasShadow WRITE setShadow RESET resetShadow NOTIFY shadowChanged)
     Q_PROPERTY(QRectF geometry READ geometry WRITE setGeometry RESET resetGeometry NOTIFY geometryChanged)
+    Q_PROPERTY(qreal aspectRatio READ aspectRatio WRITE setAspectRatio RESET resetAspectRatio NOTIFY aspectRatioChanged)
 
 public:
     /**
@@ -78,9 +79,10 @@ public:
         NumberOption = 1 << 5,
         ShadowOption = 1 << 6,
         GeometryOption = 1 << 7,
-        TranslateOption = 1 << 8,
-        ResizeOption = 1 << 9,
-        RotateOption = 1 << 10,
+        AspectRatioOption = 1 << 8,
+        TranslateOption = 1 << 9,
+        ResizeOption = 1 << 10,
+        RotateOption = 1 << 11,
         TransformOption = TranslateOption | ResizeOption | RotateOption,
     };
     Q_DECLARE_FLAGS(Options, Option)
@@ -139,6 +141,10 @@ public:
     void setGeometry(const QRectF &rect);
     void resetGeometry();
 
+    qreal aspectRatio() const;
+    void setAspectRatio(qreal ratio);
+    void resetAspectRatio();
+
 Q_SIGNALS:
     void typeChanged();
     void optionsChanged();
@@ -151,6 +157,7 @@ Q_SIGNALS:
     void numberChanged(const int number);
     void shadowChanged(bool hasShadow);
     void geometryChanged(const QRectF &rect);
+    void aspectRatioChanged(qreal ratio);
 
 private:
     std::unique_ptr<AnnotationToolPrivate> d;

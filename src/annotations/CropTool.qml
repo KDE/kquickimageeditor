@@ -111,11 +111,44 @@ Loader {
                 maximum: baseItem.height
             }
             onActiveTranslationChanged: if (active) {
+                if (root.tool.aspectRatio > 0) {
+                    return
+                }
                 const pressPosition = Utils.dprRound(centroid.pressPosition, Screen.devicePixelRatio)
                 selectionItem.x = pressPosition.x
                 selectionItem.y = pressPosition.y
+
                 selectionItem.width = activeTranslation.x / root.viewport.scale
                 selectionItem.height = activeTranslation.y / root.viewport.scale
+
+                setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
+            }
+            onTranslationChanged: (delta) => {
+                const aspectRatio = root.tool.aspectRatio
+                if (!active || aspectRatio <= 0) {
+                    return
+                }
+                delta = Utils.dprRound(delta, Screen.devicePixelRatio)
+                if (delta.x === 0 && delta.y === 0) {
+                    return
+                }
+
+                const pressPosition = Utils.dprRound(centroid.pressPosition, Screen.devicePixelRatio)
+                selectionItem.x = pressPosition.x
+                selectionItem.y = pressPosition.y
+
+                const deltaW = (selectionItem.height + delta.y) * aspectRatio - selectionItem.width
+                const deltaH = (selectionItem.width + delta.x) / aspectRatio - selectionItem.height
+
+                if (Math.abs(deltaW) <= Math.abs(deltaH)) {
+                    delta.y = deltaH
+                    selectionItem.width = activeTranslation.x / root.viewport.scale
+                    selectionItem.height = selectionItem.width / aspectRatio
+                } else {
+                    selectionItem.height = activeTranslation.y / root.viewport.scale
+                    selectionItem.width = selectionItem.height * aspectRatio
+                }
+
                 setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
             }
         }
@@ -284,20 +317,50 @@ Loader {
                 onTranslationChanged: (delta) => {
                     delta = Utils.dprRound(delta, Screen.devicePixelRatio)
                     if (active && (delta.x !== 0 || delta.y !== 0)) {
-                        delta.x /= root.viewport.scale
-                        delta.y /= root.viewport.scale
                         if (handle.edges & Qt.LeftEdge) {
-                            selectionItem.width -= delta.x
-                            selectionItem.x += delta.x
-                        } else if (handle.edges & Qt.RightEdge) {
-                            selectionItem.width += delta.x
+                            delta.x *= -1
                         }
                         if (handle.edges & Qt.TopEdge) {
-                            selectionItem.height -= delta.y
-                            selectionItem.y += delta.y
-                        } else if (handle.edges & Qt.BottomEdge) {
-                            selectionItem.height += delta.y
+                            delta.y *= -1
                         }
+
+                        const aspectRatio = root.tool.aspectRatio
+                        if (aspectRatio > 0) {
+                            const deltaW = (selectionItem.height + delta.y) * aspectRatio - selectionItem.width
+                            const deltaH = (selectionItem.width + delta.x) / aspectRatio - selectionItem.height
+
+                            if (Math.abs(deltaW) <= Math.abs(deltaH)) {
+                                delta.y = deltaH
+                            } else {
+                                delta.x = deltaW
+                            }
+                        }
+
+                        delta.x /= root.viewport.scale
+                        delta.y /= root.viewport.scale
+
+                        if (aspectRatio > 0) {
+                            if (selectionItem.x - delta.x < 0 || selectionItem.x + delta.x + selectionItem.width > baseItem.width) {
+                                return
+                            }
+                            if (selectionItem.y - delta.y < 0 || selectionItem.y + delta.y + selectionItem.height > baseItem.height) {
+                                return
+                            }
+                        }
+                        if (handle.edges & Qt.LeftEdge) {
+                            selectionItem.x = Math.min(maxX, Math.max(0, selectionItem.x - delta.x))
+                        } else if (!(handle.edges & Qt.RightEdge) && aspectRatio > 0) {
+                            selectionItem.x = Math.min(maxX, Math.max(0, selectionItem.x - delta.x / 2))
+                        }
+                        if (handle.edges & Qt.TopEdge) {
+                            selectionItem.y = Math.min(maxY, Math.max(0, selectionItem.y - delta.y))
+                        } else if (!(handle.edges & Qt.BottomEdge) && aspectRatio > 0) {
+                            selectionItem.y = Math.min(maxY, Math.max(0, selectionItem.y - delta.y / 2))
+                        }
+
+                        selectionItem.width += delta.x
+                        selectionItem.height += delta.y
+
                         setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
                     }
                 }

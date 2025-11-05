@@ -43,10 +43,14 @@ public:
     QRectF geometryForType(AnnotationTool::Tool type) const;
     void setGeometryForType(const QRectF &rect, AnnotationTool::Tool type);
 
+    qreal aspectRatioForType(AnnotationTool::Tool type) const;
+    void setAspectRatioforType(qreal ratio, AnnotationTool::Tool type);
+
     AnnotationTool::Tool type = AnnotationTool::NoTool;
     AnnotationTool::Options options = AnnotationTool::Option::NoOptions;
     int number = 1;
     QRectF cropGeometry;
+    qreal cropAspectRatio = -1.0;
 };
 
 // Default value macros
@@ -192,6 +196,7 @@ constexpr AnnotationTool::Options AnnotationToolPrivate::optionsForType(Annotati
 {
     switch (type) {
     case CropTool:
+        return {GeometryOption, AspectRatioOption};
     case SelectTool:
         return GeometryOption;
     case HighlighterTool:
@@ -675,6 +680,56 @@ void AnnotationTool::setGeometry(const QRectF &rect)
 void AnnotationTool::resetGeometry()
 {
     setGeometry({});
+}
+
+qreal AnnotationToolPrivate::aspectRatioForType(AnnotationTool::Tool type) const
+{
+    switch (type) {
+    case CropTool:
+        return cropAspectRatio;
+    default:
+        return {};
+    }
+}
+
+qreal AnnotationTool::aspectRatio() const
+{
+    return d->aspectRatioForType(d->type);
+}
+
+void AnnotationToolPrivate::setAspectRatioforType(qreal ratio, AnnotationTool::Tool type)
+{
+    switch (type) {
+    case CropTool:
+        cropAspectRatio = ratio;
+        if (ratio > 0) {
+            if (ratio >= 1) {
+                cropGeometry.setHeight(cropGeometry.width() / ratio);
+            } else {
+                cropGeometry.setWidth(cropGeometry.height() * ratio);
+            }
+        }
+        return;
+    default:
+        return;
+    }
+}
+
+void AnnotationTool::setAspectRatio(qreal ratio)
+{
+    if (!d->options.testFlag(Option::AspectRatioOption) || aspectRatio() == ratio) {
+        return;
+    }
+    d->setAspectRatioforType(ratio, d->type);
+    Q_EMIT aspectRatioChanged(ratio);
+    if (ratio > 0) {
+        Q_EMIT geometryChanged(geometry());
+    }
+}
+
+void AnnotationTool::resetAspectRatio()
+{
+    setAspectRatio(-1);
 }
 
 #include <moc_annotationtool.cpp>
