@@ -5,6 +5,7 @@
 
 #include "annotationtool.h"
 #include "annotationconfig.h"
+#include "utils.h"
 
 using enum AnnotationTool::Tool;
 using enum AnnotationTool::Option;
@@ -50,7 +51,7 @@ public:
     AnnotationTool::Options options = AnnotationTool::Option::NoOptions;
     int number = 1;
     QRectF cropGeometry;
-    qreal cropAspectRatio = -1.0;
+    qreal cropAspectRatio = 0;
 };
 
 // Default value macros
@@ -164,6 +165,12 @@ void AnnotationTool::setType(AnnotationTool::Tool type)
     const auto &newGeometry = d->geometryForType(type);
     if (oldGeometry != newGeometry) {
         Q_EMIT geometryChanged(newGeometry);
+    }
+
+    const auto &oldAspectRatio = d->aspectRatioForType(oldType);
+    const auto &newAspectRatio = d->aspectRatioForType(type);
+    if (oldAspectRatio != newAspectRatio) {
+        Q_EMIT aspectRatioChanged(newAspectRatio);
     }
 }
 
@@ -702,13 +709,7 @@ void AnnotationToolPrivate::setAspectRatioforType(qreal ratio, AnnotationTool::T
     switch (type) {
     case CropTool:
         cropAspectRatio = ratio;
-        if (ratio > 0) {
-            if (ratio >= 1) {
-                cropGeometry.setHeight(cropGeometry.width() / ratio);
-            } else {
-                cropGeometry.setWidth(cropGeometry.height() * ratio);
-            }
-        }
+        cropGeometry = Utils::rectAspectRatioed(cropGeometry, ratio);
         return;
     default:
         return;
@@ -729,7 +730,7 @@ void AnnotationTool::setAspectRatio(qreal ratio)
 
 void AnnotationTool::resetAspectRatio()
 {
-    setAspectRatio(-1);
+    setAspectRatio(0);
 }
 
 #include <moc_annotationtool.cpp>

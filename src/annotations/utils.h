@@ -68,6 +68,84 @@ public:
         return {rect.topLeft() * factor, rect.size() * factor};
     }
 
+    Q_INVOKABLE static inline QRectF rectNormalized(const QRectF &rect) noexcept
+    {
+        return rect.normalized();
+    }
+
+    Q_INVOKABLE static inline QRectF rectClipped(const QRectF &rect, const QRectF &clipRect) noexcept
+    {
+        if (rect == clipRect) {
+            return rect;
+        }
+        auto newRect = rect;
+        const auto &nClipRect = clipRect.normalized(); // normalize to make math easier
+        if (rect.width() >= 0) {
+            newRect.setLeft(std::max(rect.x(), nClipRect.x()));
+            newRect.setRight(std::min(rect.right(), nClipRect.right()));
+        } else {
+            newRect.setLeft(std::min(rect.x(), nClipRect.right()));
+            newRect.setRight(std::max(rect.right(), nClipRect.x()));
+        }
+        if (rect.height() >= 0) {
+            newRect.setTop(std::max(rect.y(), nClipRect.y()));
+            newRect.setBottom(std::min(rect.bottom(), nClipRect.bottom()));
+        } else {
+            newRect.setTop(std::min(rect.y(), nClipRect.bottom()));
+            newRect.setBottom(std::max(rect.bottom(), nClipRect.y()));
+        }
+        return newRect;
+    }
+
+    Q_INVOKABLE static inline QRectF rectAspectRatioedForHandle(const QRectF &rect, qreal ratio, int edges) noexcept
+    {
+        if (ratio <= 0) {
+            return rect;
+        }
+        const bool square = ratio == 1;
+        const bool landscape = ratio > 1;
+        const bool portrait = ratio < 1;
+        // wants to adjust top/bottom only
+        const bool vEdge = edges == Qt::TopEdge || edges == Qt::BottomEdge;
+        // wants to adjust left/right only
+        const bool hEdge = edges == Qt::LeftEdge || edges == Qt::RightEdge;
+        auto pos = rect.topLeft();
+        auto size = rect.size();
+        if ((landscape && !vEdge) || (hEdge)) {
+            size = {size.width(), std::abs(size.width()) / ratio * std::copysign(1.0, size.height())};
+        } else if ((portrait && !hEdge) || (vEdge)) {
+            size = {std::abs(size.height()) * ratio * std::copysign(1.0, size.width()), size.height()};
+        } else if (square) {
+            auto w = std::abs(std::sqrt(rect.width() * rect.height() / ratio));
+            auto h = std::abs(std::sqrt(rect.width() * rect.height() * ratio));
+            size = {w * std::copysign(1.0, size.width()), h * std::copysign(1.0, size.height())};
+        }
+        auto wdiff = size.width() - rect.width();
+        auto hdiff = size.height() - rect.height();
+        if (edges & Qt::LeftEdge) {
+            pos.rx() -= wdiff;
+        }
+        if (edges & Qt::TopEdge) {
+            pos.ry() -= hdiff;
+        }
+        if (vEdge) {
+            pos.rx() -= wdiff / 2;
+        } else if (hEdge) {
+            pos.ry() -= hdiff / 2;
+        }
+        return {pos, size};
+    }
+
+    Q_INVOKABLE static inline QRectF rectAspectRatioed(const QRectF &rect, qreal ratio) noexcept
+    {
+        if (ratio <= 0) {
+            return rect;
+        }
+        auto w = std::sqrt(rect.width() * rect.height() * ratio);
+        auto h = std::sqrt(rect.width() * rect.height() / ratio);
+        return {rect.x(), rect.y(), w, h};
+    }
+
     // Behaves like qBound, which behaves differently from std::clamp,
     // but uses the same argument order as std::clamp.
     Q_INVOKABLE constexpr static inline qreal

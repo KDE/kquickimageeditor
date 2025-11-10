@@ -21,7 +21,7 @@ Loader {
         Binding {
             target: root.tool
             property: "geometry"
-            value: baseItem.rectNormalized(selectionItem)
+            value: Utils.rectNormalized(baseItem.itemRect(selectionItem))
             when: baseItem.dragging
             restoreMode: Binding.RestoreNone
         }
@@ -42,44 +42,6 @@ Loader {
             item.y = dimension.y
             item.width = dimension.width
             item.height = dimension.height
-        }
-        function rectNormalized(dimension: rect): rect {
-            let x = dimension.x
-            let y = dimension.y
-            let w = dimension.width
-            let h = dimension.height
-            if (w < 0) {
-                x += w;
-                w = -w;
-            }
-            if (h < 0) {
-                y += h;
-                h = -h;
-            }
-            return Qt.rect(x, y, w, h)
-        }
-        function itemRectClipped(item: Item, clipRect: rect): rect {
-            let rect = itemRect(item);
-            if (rect === clipRect) {
-                return rect;
-            }
-            let newRect = itemRect(item);
-            const nClipRect = rectNormalized(clipRect); // normalize to make math easier
-            if (rect.width >= 0) {
-                newRect.x = Math.max(rect.x, nClipRect.x);
-                newRect.width = Math.min(rect.right, nClipRect.right) - newRect.x;
-            } else {
-                newRect.x = Math.min(rect.x, nClipRect.right);
-                newRect.width = Math.max(rect.right, nClipRect.x) - newRect.x;
-            }
-            if (rect.height >= 0) {
-                newRect.y = Math.max(rect.y, nClipRect.y);
-                newRect.height = Math.min(rect.bottom, nClipRect.bottom) - newRect.y;
-            } else {
-                newRect.y = Math.min(rect.y, nClipRect.bottom);
-                newRect.height = Math.max(rect.bottom, nClipRect.y) - newRect.y;
-            }
-            return newRect;
         }
         function maxRect(): rect {
             return Qt.rect(0, 0, width, height)
@@ -110,46 +72,15 @@ Loader {
                 minimum: 0
                 maximum: baseItem.height
             }
-            onActiveTranslationChanged: if (active) {
-                if (root.tool.aspectRatio > 0) {
-                    return
-                }
-                const pressPosition = Utils.dprRound(centroid.pressPosition, Screen.devicePixelRatio)
-                selectionItem.x = pressPosition.x
-                selectionItem.y = pressPosition.y
-
-                selectionItem.width = activeTranslation.x / root.viewport.scale
-                selectionItem.height = activeTranslation.y / root.viewport.scale
-
-                setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
-            }
-            onTranslationChanged: (delta) => {
+            onTranslationChanged: if (active) {
                 const aspectRatio = root.tool.aspectRatio
-                if (!active || aspectRatio <= 0) {
-                    return
-                }
-                delta = Utils.dprRound(delta, Screen.devicePixelRatio)
-                if (delta.x === 0 && delta.y === 0) {
-                    return
-                }
-
                 const pressPosition = Utils.dprRound(centroid.pressPosition, Screen.devicePixelRatio)
-                selectionItem.x = pressPosition.x
-                selectionItem.y = pressPosition.y
-
-                const deltaW = (selectionItem.height + delta.y) * aspectRatio - selectionItem.width
-                const deltaH = (selectionItem.width + delta.x) / aspectRatio - selectionItem.height
-
-                if (Math.abs(deltaW) <= Math.abs(deltaH)) {
-                    delta.y = deltaH
-                    selectionItem.width = activeTranslation.x / root.viewport.scale
-                    selectionItem.height = selectionItem.width / aspectRatio
-                } else {
-                    selectionItem.height = activeTranslation.y / root.viewport.scale
-                    selectionItem.width = selectionItem.height * aspectRatio
-                }
-
-                setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
+                let w = Utils.dprRound(activeTranslation.x, Screen.devicePixelRatio) / root.viewport.scale
+                let h = Utils.dprRound(activeTranslation.y, Screen.devicePixelRatio) / root.viewport.scale
+                let rect = Qt.rect(pressPosition.x, pressPosition.y, w, h)
+                rect = Utils.rectAspectRatioed(rect, aspectRatio)
+                rect = Utils.rectClipped(rect, baseItem.maxRect())
+                setItemRect(selectionItem, rect)
             }
         }
         PointHandler {
@@ -179,7 +110,9 @@ Loader {
             target: root.document
             // Clip selection in case someone undos/redos a crop while this tool is active
             function onUndoStackDepthChanged() {
-                baseItem.setItemRect(selectionItem, baseItem.itemRectClipped(selectionItem, baseItem.maxRect()))
+                let rect = Utils.rectAspectRatioed(baseItem.itemRect(selectionItem), aspectRatio)
+                rect = Utils.rectClipped(rect, baseItem.maxRect())
+                baseItem.setItemRect(selectionItem, rect)
             }
         }
 
@@ -222,21 +155,25 @@ Loader {
             id: selectionItem
             visible: width !== 0 || height !== 0
             Binding on x {
+                delayed: true
                 value: root.tool.geometry.x
                 when: !baseItem.dragging
                 restoreMode: Binding.RestoreNone
             }
             Binding on y {
+                delayed: true
                 value: root.tool.geometry.y
                 when: !baseItem.dragging
                 restoreMode: Binding.RestoreNone
             }
             Binding on width {
+                delayed: true
                 value: root.tool.geometry.width
                 when: !baseItem.dragging
                 restoreMode: Binding.RestoreNone
             }
             Binding on height {
+                delayed: true
                 value: root.tool.geometry.height
                 when: !baseItem.dragging
                 restoreMode: Binding.RestoreNone
@@ -317,51 +254,24 @@ Loader {
                 onTranslationChanged: (delta) => {
                     delta = Utils.dprRound(delta, Screen.devicePixelRatio)
                     if (active && (delta.x !== 0 || delta.y !== 0)) {
-                        if (handle.edges & Qt.LeftEdge) {
-                            delta.x *= -1
-                        }
-                        if (handle.edges & Qt.TopEdge) {
-                            delta.y *= -1
-                        }
-
-                        const aspectRatio = root.tool.aspectRatio
-                        if (aspectRatio > 0) {
-                            const deltaW = (selectionItem.height + delta.y) * aspectRatio - selectionItem.width
-                            const deltaH = (selectionItem.width + delta.x) / aspectRatio - selectionItem.height
-
-                            if (Math.abs(deltaW) <= Math.abs(deltaH)) {
-                                delta.y = deltaH
-                            } else {
-                                delta.x = deltaW
-                            }
-                        }
-
                         delta.x /= root.viewport.scale
                         delta.y /= root.viewport.scale
-
-                        if (aspectRatio > 0) {
-                            if (selectionItem.x - delta.x < 0 || selectionItem.x + delta.x + selectionItem.width > baseItem.width) {
-                                return
-                            }
-                            if (selectionItem.y - delta.y < 0 || selectionItem.y + delta.y + selectionItem.height > baseItem.height) {
-                                return
-                            }
-                        }
+                        let rect = baseItem.itemRect(selectionItem)
                         if (handle.edges & Qt.LeftEdge) {
-                            selectionItem.x = Math.min(maxX, Math.max(0, selectionItem.x - delta.x))
-                        } else if (!(handle.edges & Qt.RightEdge) && aspectRatio > 0) {
-                            selectionItem.x = Math.min(maxX, Math.max(0, selectionItem.x - delta.x / 2))
+                            rect.width -= delta.x
+                            rect.x += delta.x
+                        } else if (handle.edges & Qt.RightEdge) {
+                            rect.width += delta.x
                         }
                         if (handle.edges & Qt.TopEdge) {
-                            selectionItem.y = Math.min(maxY, Math.max(0, selectionItem.y - delta.y))
-                        } else if (!(handle.edges & Qt.BottomEdge) && aspectRatio > 0) {
-                            selectionItem.y = Math.min(maxY, Math.max(0, selectionItem.y - delta.y / 2))
+                            rect.height -= delta.y
+                            rect.y += delta.y
+                        } else if (handle.edges & Qt.BottomEdge) {
+                            rect.height += delta.y
                         }
-
-                        selectionItem.width += delta.x
-                        selectionItem.height += delta.y
-
-                        setItemRect(selectionItem, itemRectClipped(selectionItem, maxRect()))
+                        rect = Utils.rectAspectRatioedForHandle(rect, root.tool.aspectRatio, handle.edges)
+                        rect = Utils.rectClipped(rect, baseItem.maxRect())
+                        setItemRect(selectionItem, rect)
                     }
                 }
             }
