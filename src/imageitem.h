@@ -10,29 +10,76 @@
 #include <QImage>
 #include <QQuickPaintedItem>
 
+/*!
+ * \inqmlmodule org.kde.kquickimageeditor
+ * \qmltype ImageItem
+ */
 class ImageItem : public QQuickPaintedItem
 {
     Q_OBJECT
     QML_ELEMENT
 
+    /*!
+     * \qmlproperty image ImageItem::image
+     */
     Q_PROPERTY(QImage image READ image WRITE setImage NOTIFY imageChanged RESET resetImage)
+    /*!
+     * \qmlproperty int ImageItem::nativeWidth
+     */
     Q_PROPERTY(int nativeWidth READ nativeWidth NOTIFY nativeWidthChanged)
+    /*!
+     * \qmlproperty int ImageItem::nativeHeight
+     */
     Q_PROPERTY(int nativeHeight READ nativeHeight NOTIFY nativeHeightChanged)
+    /*!
+     * \qmlproperty int ImageItem::paintedWidth
+     */
     Q_PROPERTY(int paintedWidth READ paintedWidth NOTIFY paintedWidthChanged)
+    /*!
+     * \qmlproperty int ImageItem::paintedHeight
+     */
     Q_PROPERTY(int paintedHeight READ paintedHeight NOTIFY paintedHeightChanged)
+    /*!
+     * \qmlproperty int ImageItem::verticalPadding
+     */
     Q_PROPERTY(int verticalPadding READ verticalPadding NOTIFY verticalPaddingChanged)
+    /*!
+     * \qmlproperty int ImageItem::horizontalPadding
+     */
     Q_PROPERTY(int horizontalPadding READ horizontalPadding NOTIFY horizontalPaddingChanged)
+    /*!
+     * \qmlproperty FillMode ImageItem::fillMode
+     * \qmlenumeratorsfrom ImageItem::FillMode
+     */
     Q_PROPERTY(FillMode fillMode READ fillMode WRITE setFillMode NOTIFY fillModeChanged)
+    /*!
+     * \qmlproperty bool ImageItem::null
+     */
     Q_PROPERTY(bool null READ isNull NOTIFY nullChanged)
 
 public:
+    /*!
+     * \enum ImageItem::FillMode
+     * \value Stretch
+     *        The image is scaled to fit.
+     * \value PreserveAspectFit
+     *        The image is scaled uniformly to fit without cropping.
+     * \value PreserveAspectCrop
+     *        The image is scaled uniformly to fill, cropping if necessary.
+     * \value Tile
+     *        The image is duplicated horizontally and vertically.
+     * \value TileVertically
+     *        The image is stretched horizontally and tiled vertically.
+     * \value TileHorizontally
+     *        The image is stretched vertically and tiled horizontally.
+     */
     enum FillMode {
-        Stretch, // the image is scaled to fit
-        PreserveAspectFit, // the image is scaled uniformly to fit without cropping
-        PreserveAspectCrop, // the image is scaled uniformly to fill, cropping if necessary
-        Tile, // the image is duplicated horizontally and vertically
-        TileVertically, // the image is stretched horizontally and tiled vertically
-        TileHorizontally // the image is stretched vertically and tiled horizontally
+        Stretch,
+        PreserveAspectFit,
+        PreserveAspectCrop,
+        Tile,
+        TileVertically,
+        TileHorizontally
     };
     Q_ENUM(FillMode)
 

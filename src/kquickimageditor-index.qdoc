@@ -1,0 +1,35 @@
+/*!
+    \page kquickimageeditor-index.html
+    \title KQuickImageEditor
+
+    QML components providing basic image editing
+    capabilities.
+
+    \section1 Using the Module
+
+    \include {module-use.qdocinc} {using the c++ api}
+
+    \section2 Building with CMake
+
+    To import only the KQuickImageEditor QML modules:
+
+    \code
+    ecm_find_qml_module(org.kde.kquickimageeditor REQUIRED)
+    \endcode
+
+    To import KQuickImageEditor into your project using CMake:
+
+    \code
+    find_package(KQuickImageEditor REQUIRED)
+    \endcode
+
+    \section1 API Reference
+
+    \list
+        \li \l{KQuickImageEditor QML Types}
+    \endlist
+
+    \section1 Licenses
+
+    TODO
+*/

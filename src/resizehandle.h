@@ -11,14 +11,35 @@
 
 class ResizeRectangle;
 
+/*!
+ * \inqmlmodule org.kde.kquickimageeditor
+ * \qmltype ResizeHandle
+ */
 class ResizeHandle : public QQuickItem
 {
     Q_OBJECT
     QML_ELEMENT
+    /*!
+     * \qmlproperty bool ResizeHandle::resizeBlocked
+     */
     Q_PROPERTY(bool resizeBlocked READ resizeBlocked NOTIFY resizeBlockedChanged)
+    /*!
+     * \qmlproperty Item ResizeHandle::rectangle
+     */
     Q_PROPERTY(QQuickItem *rectangle READ rectangle WRITE setRectangle NOTIFY rectangleChanged)
 
 public:
+    /*!
+     * \enum ResizeHandle::Corner
+     * \value Left
+     * \value TopLeft
+     * \value Top
+     * \value TopRight
+     * \value Right
+     * \value BottomRight
+     * \value Bottom
+     * \value BottomLeft
+     */
     enum Corner {
         Left = 0,
         TopLeft,

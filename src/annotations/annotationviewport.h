@@ -15,23 +15,50 @@
 class AnnotationViewportPrivate;
 class QPainter;
 
-/**
- * This is a QML item which paints its correspondent AnnotationDocument or a sub-part of it,
+/*!
+ * \inqmlmodule org.kde.kquickimageeditor
+ * \qmltype AnnotationViewport
+ * \brief A QML item which paints its correspondent AnnotationDocument or a sub-part of it,
  * depending from viewportRect and zoom.
- * This is also managing all the input which will add the annotations.
+ *
+ * This also manages all the input for adding the annotations.
  */
 class KQUICKIMAGEEDITOR_EXPORT AnnotationViewport : public QQuickItem
 {
     Q_OBJECT
     QML_ELEMENT
 
+    /*!
+     * \qmlproperty rect AnnotationViewport::viewportRect
+     */
     Q_PROPERTY(QRectF viewportRect READ viewportRect WRITE setViewportRect NOTIFY viewportRectChanged)
+    /*!
+     * \qmlproperty AnnotationDocument AnnotationViewport::document
+     */
     Q_PROPERTY(AnnotationDocument *document READ document WRITE setDocument NOTIFY documentChanged)
+    /*!
+     * \qmlproperty point AnnotationViewport::hoverPosition
+     */
     Q_PROPERTY(QPointF hoverPosition READ hoverPosition NOTIFY hoverPositionChanged)
+    /*!
+     * \qmlproperty bool AnnotationViewport::hovered
+     */
     Q_PROPERTY(bool hovered READ isHovered NOTIFY hoveredChanged)
+    /*!
+     * \qmlproperty point AnnotationViewport::pressPosition
+     */
     Q_PROPERTY(QPointF pressPosition READ pressPosition NOTIFY pressPositionChanged)
+    /*!
+     * \qmlproperty bool AnnotationViewport::pressed
+     */
     Q_PROPERTY(bool pressed READ isPressed NOTIFY pressedChanged)
+    /*!
+     * \qmlproperty bool AnnotationViewport::anyPressed
+     */
     Q_PROPERTY(bool anyPressed READ isAnyPressed NOTIFY anyPressedChanged)
+    /*!
+     * \qmlproperty QPainterPath AnnotationViewport::hoveredMousePath
+     */
     Q_PROPERTY(QPainterPath hoveredMousePath READ hoveredMousePath NOTIFY hoveredMousePathChanged)
 
 public:

@@ -24,27 +24,64 @@ class SelectedItemWrapper;
 class AnnotationViewport;
 class QPainter;
 
-/**
- * This class is used to render an image with annotations. The annotations are vector graphics
+/*!
+ * \inqmlmodule org.kde.kquickimageeditor
+ * \qmltype AnnotationDocument
+ * \brief This class is used to render an image with annotations.
+ *
+ * The annotations are vector graphics
  * and image effects created from a stack of history items that can be undone or redone.
- * `paint()` and `renderToImage()` will be used by clients (e.g., AnnotationViewport) to render
- * their own content. There can be any amount of clients sharing the same AnnotationDocument.
+ *
+ * paint() and renderToImage() will be used by clients (e.g., AnnotationViewport) to render
+ * their own content.
+ *
+ * There can be any amount of clients sharing the same AnnotationDocument.
  */
 class KQUICKIMAGEEDITOR_EXPORT AnnotationDocument : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
 
+    /*!
+     * \qmlproperty AnnotationTool AnnotationDocument::tool
+     */
     Q_PROPERTY(AnnotationTool *tool READ tool CONSTANT)
+    /*!
+     * \qmlproperty SelectedItemWrapper AnnotationDocument::selectedItem
+     */
     Q_PROPERTY(SelectedItemWrapper *selectedItem READ selectedItemWrapper NOTIFY selectedItemWrapperChanged)
 
+    /*!
+     * \qmlproperty int AnnotationDocument::redoStackDepth
+     */
     Q_PROPERTY(int redoStackDepth READ redoStackDepth NOTIFY redoStackDepthChanged)
+    /*!
+     * \qmlproperty int AnnotationDocument::undoStackDepth
+     */
     Q_PROPERTY(int undoStackDepth READ undoStackDepth NOTIFY undoStackDepthChanged)
+    /*!
+     * \qmlproperty rect AnnotationDocument::canvasRect
+     */
     Q_PROPERTY(QRectF canvasRect READ canvasRect NOTIFY canvasRectChanged)
+    /*!
+     * \qmlproperty size AnnotationDocument::imageSize
+     */
     Q_PROPERTY(QSizeF imageSize READ imageSize NOTIFY imageSizeChanged)
+    /*!
+     * \qmlproperty real AnnotationDocument::imageDpr
+     */
     Q_PROPERTY(qreal imageDpr READ imageDpr NOTIFY imageDprChanged)
+    /*!
+     * \qmlproperty matrix4x4 AnnotationDocument::transform
+     */
     Q_PROPERTY(QMatrix4x4 transform READ transform NOTIFY transformChanged)
+    /*!
+     * \qmlproperty matrix4x4 AnnotationDocument::renderTransform
+     */
     Q_PROPERTY(QMatrix4x4 renderTransform READ renderTransform NOTIFY transformChanged)
+    /*!
+     * \qmlproperty matrix4x4 AnnotationDocument::inputTransform
+     */
     Q_PROPERTY(QMatrix4x4 inputTransform READ inputTransform NOTIFY transformChanged)
 
     /*!
@@ -57,6 +94,12 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationDocument : public QObject
     Q_PROPERTY(bool modified READ isModified WRITE setModified NOTIFY modifiedChanged)
 
 public:
+    /*!
+     * \qmlproperty enumeration AnnotationDocument::ContinueOption
+     * \value NoOptions
+     * \value Snap
+     * \value CenterResize
+     */
     enum class ContinueOption {
         NoOptions = 0,
         Snap = 1,
@@ -65,6 +108,13 @@ public:
     Q_DECLARE_FLAGS(ContinueOptions, ContinueOption)
     Q_FLAG(ContinueOption)
 
+    /*!
+     * \qmlproperty enumeration AnnotationDocument::RepaintType
+     * \value NoTypes
+     * \value BaseImage
+     * \value Annotations
+     * \value All
+     */
     enum class RepaintType {
         NoTypes = 0,
         BaseImage = 1,
@@ -101,18 +151,30 @@ public:
     // and canvas rect. Cannot be undone.
     void setBaseImage(const QImage &image);
 
-    /// Set the base image from the given file path.
+    /*!
+     * \qmlmethod void AnnotationDocument::setBaseImage(string path)
+     * Set the base image from the given file path.
+     */
     Q_INVOKABLE void setBaseImage(const QString &path);
 
-    /// Set the base image from the given local file URL.
-    /// We only support local files because QImage can only load directly from local files.
-    /// This overload exists so that we don't have to convert URLs into path strings.
+    /*!
+     * \qmlmethod void AnnotationDocument::setBaseImage(url localFile)
+     * Set the base image from the given local file URL.
+     *
+     * We only support local files because QImage can only load directly from local files.
+     * This overload exists so that we don't have to convert URLs into path strings.
+     */
     Q_INVOKABLE void setBaseImage(const QUrl &localFile);
 
-    /// Hide annotations that do not intersect with the rectangle and crop the image.
+    /*!
+     * \qmlmethod void AnnotationDocument::cropCanvas(rect cropRect)
+     * Hide annotations that do not intersect with the rectangle and crop the image.
+     */
     Q_INVOKABLE void cropCanvas(const QRectF &cropRect);
 
-    /// Get the whole image transform
+    /*!
+     * Get the whole image transform
+     */
     QMatrix4x4 transform() const;
 
     // A transform that is good for rendering annotations
@@ -120,15 +182,24 @@ public:
     // A transform that is good for processing input for annotations
     QMatrix4x4 inputTransform() const;
 
-    /// Apply a transform and combine it with the existing transform.
-    /// This is not part of the `transform` property. It adds an item to
-    /// history and we don't want this to be rapidly called through bindings.
+    /*!
+     * \qmlmethod void AnnotationDocument::applyTransform(matrix4x4 matrix)
+     * Apply a transform and combine it with the existing transform.
+     * This is not part of the `transform` property. It adds an item to
+     * history and we don't want this to be rapidly called through bindings.
+     */
     Q_INVOKABLE void applyTransform(const QMatrix4x4 &matrix);
 
-    /// Clear all annotations. Cannot be undone.
+    /*!
+     * \qmlmethod void AnnotationDocument::clearAnnotations()
+     * Clear all annotations. Cannot be undone.
+     */
     Q_INVOKABLE void clearAnnotations();
 
-    /// Clear all annotations and the image. Cannot be undone.
+    /*!
+     * \qmlmethod void AnnotationDocument::clear()
+     * Clear all annotations and the image. Cannot be undone.
+     */
     Q_INVOKABLE void clear();
 
     // Get an image containing just the annotations.
@@ -137,13 +208,22 @@ public:
 
     QImage renderToImage() const;
 
-    /// Render to an image and save it to the given path.
+    /*!
+     * \qmlmethod bool AnnotationDocument::saveImage(string path)
+     * Render to an image and save it to the given path.
+     */
     Q_INVOKABLE bool saveImage(const QString &path) const;
 
     // True when there is an item at the end of the undo stack and it is invalid.
     bool isCurrentItemValid() const;
 
+    /*!
+     * \qmlmethod void AnnotationDocument::undo()
+     */
     Q_INVOKABLE void undo();
+    /*!
+     * void AnnotationDocument::redo()
+     */
     Q_INVOKABLE void redo();
 
     // For starting a new item
@@ -152,8 +232,17 @@ public:
     void finishItem();
 
     // For managing an existing item
+    /*!
+     * \qmlmethod void AnnotationDocument::selectItem(rect rect)
+     */
     Q_INVOKABLE void selectItem(const QRectF &rect);
+    /*!
+     * \qmlmethod void AnnotationDocument::deselectItem()
+     */
     Q_INVOKABLE void deselectItem();
+    /*!
+     * \qmlmethod void AnnotationDocument::deleteSelectedItem()
+     */
     Q_INVOKABLE void deleteSelectedItem();
 
 Q_SIGNALS:
@@ -165,7 +254,6 @@ Q_SIGNALS:
     void imageDprChanged();
     void transformChanged();
     void modifiedChanged();
-
     void repaintNeeded(AnnotationDocument::RepaintTypes types);
 
 private:
@@ -177,7 +265,7 @@ private:
     std::unique_ptr<AnnotationDocumentPrivate> d;
 };
 
-/**
+/*!
  * When the user selects an existing shape with the mouse, this wraps all the parameters of the associated item, so that they can be modified from QML
  */
 class KQUICKIMAGEEDITOR_EXPORT SelectedItemWrapper : public QObject

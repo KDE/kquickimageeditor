@@ -1,0 +1,24 @@
+include($KDE_DOCS/global/qt-module-defaults.qdocconf)
+
+project = KQuickImageEditor
+description = QML components providing basic image editing capabilities
+
+documentationinheaders = true
+
+headerdirs += .
+sourcedirs += .
+imagedirs = . ../docs/pics
+
+outputformats = HTML
+
+depends += kde kirigami qtcore qtquick qtquickcontrols qtgui
+
+qhp.projects = KQuickImageEditor
+
+qhp.KQuickImageEditor.file          = kquickimageeditor.qhp
+qhp.KQuickImageEditor.namespace     = org.kde.kquickimageeditor.$QT_VERSION_TAG
+qhp.KQuickImageEditor.virtualFolder = kquickimageeditor
+qhp.KQuickImageEditor.indexTitle    = KQuickImageEditor
+qhp.KQuickImageEditor.indexRoot     =
+
+tagfile = kquickimageeditor.tags

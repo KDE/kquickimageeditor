@@ -1,0 +1,6 @@
+/*!
+   \qmlmodule org.kde.kquickimageeditor
+   \title KQuickImageEditor QML Types
+   \inmodule qmlmodules
+   \brief QML components providing basic image editing capabilities.
+ */

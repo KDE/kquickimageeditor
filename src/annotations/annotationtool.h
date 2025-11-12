@@ -13,10 +13,13 @@
 
 class AnnotationToolPrivate;
 
-/**
- * This is the data structure that controls the creation of the next item. From qml its paramenter
- * will be set by the app toolbars, and then drawing on the screen with the mouse will lead to the
- * creation of a new item based on those parameters
+/*!
+ * \inqmlmodule org.kde.kquickimageeditor
+ * \qmltype AnnotationTool
+ * \brief The data structure that controls the creation of the next item.
+ *
+ * From QML its parameter will be set by the app toolbars, and then drawing on the
+ * screen with the mouse will lead to the creation of a new item based on those parameters.
  */
 class KQUICKIMAGEEDITOR_EXPORT AnnotationTool : public QObject
 {
@@ -24,26 +27,79 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationTool : public QObject
     QML_ELEMENT
     QML_UNCREATABLE("Created by AnnotationDocument")
 
+    /*!
+     * \qmlproperty Tool AnnotationTool::type
+     */
     Q_PROPERTY(Tool type READ type WRITE setType RESET resetType NOTIFY typeChanged)
+    /*!
+     * \qmlproperty bool AnnotationTool::isNoTool
+     */
     Q_PROPERTY(bool isNoTool READ isNoTool NOTIFY typeChanged)
+    /*!
+     * \qmlproperty bool AnnotationTool::isMetaTool
+     */
     Q_PROPERTY(bool isMetaTool READ isMetaTool NOTIFY typeChanged)
+    /*!
+     * \qmlproperty bool AnnotationTool::isCreationTool
+     */
     Q_PROPERTY(bool isCreationTool READ isCreationTool NOTIFY typeChanged)
+    /*!
+     * \qmlproperty Options AnnotationTool::options
+     */
     Q_PROPERTY(Options options READ options NOTIFY optionsChanged)
+    /*!
+     * \qmlproperty int AnnotationTool::strokeWidth
+     */
     Q_PROPERTY(int strokeWidth READ strokeWidth WRITE setStrokeWidth RESET resetStrokeWidth NOTIFY strokeWidthChanged)
+    /*!
+     * \qmlproperty color AnnotationTool::strokeColor
+     */
     Q_PROPERTY(QColor strokeColor READ strokeColor WRITE setStrokeColor RESET resetStrokeColor NOTIFY strokeColorChanged)
+    /*!
+     * \qmlproperty color AnnotationTool::fillColor
+     */
     Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor RESET resetFillColor NOTIFY fillColorChanged)
+    /*!
+     * \qmlproperty real AnnotationTool::strength
+     */
     Q_PROPERTY(qreal strength READ strength WRITE setStrength RESET resetStrength NOTIFY strengthChanged)
+    /*!
+     * \qmlproperty font AnnotationTool::font
+     */
     Q_PROPERTY(QFont font READ font WRITE setFont RESET resetFont NOTIFY fontChanged)
+    /*!
+     * \qmlproperty color AnnotationTool::fontColor
+     */
     Q_PROPERTY(QColor fontColor READ fontColor WRITE setFontColor RESET resetFontColor NOTIFY fontColorChanged)
+    /*!
+     * \qmlproperty int AnnotationTool::number
+     */
     Q_PROPERTY(int number READ number WRITE setNumber RESET resetNumber NOTIFY numberChanged)
+    /*!
+     * \qmlproperty bool AnnotationTool::shadow
+     */
     Q_PROPERTY(bool shadow READ hasShadow WRITE setShadow RESET resetShadow NOTIFY shadowChanged)
     Q_PROPERTY(QRectF geometry READ geometry WRITE setGeometry RESET resetGeometry NOTIFY geometryChanged)
     Q_PROPERTY(qreal aspectRatio READ aspectRatio WRITE setAspectRatio RESET resetAspectRatio NOTIFY aspectRatioChanged)
 
 public:
-    /**
+    /*!
+     * \qmlproperty enumeration AnnotationTool::Tool
      * These tools are meant to be shown as selectable tool types in the UI.
      * They can also affect the types of traits a drawable object is allowed to have.
+     * \value NoTool
+     * \value SelectTool
+     * \value FreehandTool
+     * \value HighlighterTool
+     * \value LineTool
+     * \value ArrowTool
+     * \value RectangleTool
+     * \value EllipseTool
+     * \value BlurTool
+     * \value PixelateTool
+     * \value TextTool
+     * \value NumberTool
+     * \value NTools
      */
     enum Tool {
         NoTool,
@@ -65,9 +121,18 @@ public:
     };
     Q_ENUM(Tool)
 
-    /**
+    /*!
+     * \qmlproperty enumeration AnnotationTool::Option
      * These options are meant to help control which options are visible in the UI
      * and what kinds of traits a drawable object should have.
+     * \value NoOptions
+     * \value StrokeOption
+     * \value FillOption
+     * \value StrengthOption
+     * \value FontOption
+     * \value TextOption
+     * \value NumberOption
+     * \value ShadowOption
      */
     enum Option {
         NoOptions = 0,

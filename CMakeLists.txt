@@ -28,6 +28,7 @@ include(ECMGenerateExportHeader)
 include(ECMGenerateHeaders)
 include(ECMGenerateQmlTypes)
 include(ECMQmlModule)
+include(ECMGenerateQDoc)
 
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)

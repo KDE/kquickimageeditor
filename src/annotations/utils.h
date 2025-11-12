@@ -20,6 +20,10 @@
 
 using namespace Qt::StringLiterals;
 
+/*!
+ * \inqmlmodule org.kde.kquickimageeditor
+ * \qmltype Utils
+ */
 class Utils : public QObject
 {
     Q_OBJECT
@@ -47,22 +51,34 @@ public:
         return qRound(value * dpr) / dpr;
     }
 
+    /*!
+     * \qmlmethod real Utils::dprRound(real value, real dpr)
+     */
     Q_INVOKABLE constexpr static inline qreal dprRound(qreal value, qreal dpr) noexcept
     {
         // Using qRound because std::round isn't constexpr until C++23
         return dprRound<qreal>(value, dpr);
     }
 
+    /*!
+     * \qmlmethod point Utils::dprRound(point value, real dpr)
+     */
     Q_INVOKABLE constexpr static inline QPointF dprRound(const QPointF &value, qreal dpr) noexcept
     {
         return {dprRound(value.x(), dpr), dprRound(value.y(), dpr)};
     }
 
+    /*!
+     * \qmlmethod vector2d Utils::dprRound(vector2d value, real dpr)
+     */
     Q_INVOKABLE constexpr static inline QVector2D dprRound(const QVector2D &value, qreal dpr) noexcept
     {
         return {dprRound(value.x(), dpr), dprRound(value.y(), dpr)};
     }
 
+    /*!
+     * \qmlmethod rect Utils::rectScaled(rect rect, real factor)
+     */
     Q_INVOKABLE constexpr static inline QRectF rectScaled(const QRectF &rect, qreal factor) noexcept
     {
         return {rect.topLeft() * factor, rect.size() * factor};
@@ -146,8 +162,11 @@ public:
         return {rect.x(), rect.y(), w, h};
     }
 
-    // Behaves like qBound, which behaves differently from std::clamp,
-    // but uses the same argument order as std::clamp.
+    /*!
+     * \qmlmethod real Utils::clamp(real value, real min = infinity, real max = infinity)
+     * Behaves like qBound, which behaves differently from std::clamp,
+     * but uses the same argument order as std::clamp.
+     */
     Q_INVOKABLE constexpr static inline qreal
     clamp(qreal value, qreal min = -std::numeric_limits<qreal>::infinity(), qreal max = std::numeric_limits<qreal>::infinity()) noexcept
     {
@@ -155,6 +174,9 @@ public:
         return std::max(min, std::min(value, max));
     }
 
+    /*!
+     * \qmlmethod real Utils::combinedScale(matrix4x4 matrix)
+     */
     Q_INVOKABLE static inline qreal combinedScale(const QMatrix4x4 &matrix) noexcept
     {
         // Not constexpr until C++26
@@ -229,6 +251,9 @@ public:
         return shadow;
     }
 
+    /*!
+     * \qmlmethod point Utils::sceneToDocumentPoint(point point, AnnotationViewport viewport)
+     */
     Q_INVOKABLE static inline QPointF sceneToDocumentPoint(QPointF point, AnnotationViewport *viewport)
     {
         auto p = dprRound(point, viewport->window()->devicePixelRatio());
@@ -237,15 +262,22 @@ public:
         return p + viewport->viewportRect().topLeft();
     }
 
-    /**
+    /*!
+     * \qmlmethod Object Utils::handleResizeProperties(real dx, real dy, int edges, AnnotationDocument document)
      * Get a QVariantMap of properties for resizing an item in response to the
-     * movement of handles. The map contains the effective handle edges so movement
-     * can be tracked properly and the QMatrix4x4 to be used.
+     * movement of handles.
+     *
+     * The map contains the effective handle edges so movement
+     * can be tracked properly and the QMatrix4x4 to be used
      * that are positioned along the edges of the item's bounding box.
-     * `dx` should be the X axis difference between 2 points in document coordinates.
-     * `dy` should be the Y axis difference between 2 points in document coordinates.
-     * `edges` should be the bounding box edges a handle touches.
-     * `document` should be the AnnotationDocument with the item being transformed.
+     *
+     * The \a dx should be the X axis difference between 2 points in document coordinates.
+     *
+     * The \a dy should be the Y axis difference between 2 points in document coordinates.
+     *
+     * The \a edges should be the bounding box edges a handle touches.
+     *
+     * The \a document should be the AnnotationDocument with the item being transformed.
      */
     Q_INVOKABLE static inline QVariantMap handleResizeProperties(qreal dx, qreal dy, int edges, AnnotationDocument *document)
     {
