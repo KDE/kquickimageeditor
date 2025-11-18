@@ -110,7 +110,7 @@ Loader {
             target: root.document
             // Clip selection in case someone undos/redos a crop while this tool is active
             function onUndoStackDepthChanged() {
-                let rect = Utils.rectAspectRatioed(baseItem.itemRect(selectionItem), aspectRatio)
+                let rect = Utils.rectAspectRatioed(baseItem.itemRect(selectionItem), root.tool.aspectRatio)
                 rect = Utils.rectClipped(rect, baseItem.maxRect())
                 baseItem.setItemRect(selectionItem, rect)
             }
