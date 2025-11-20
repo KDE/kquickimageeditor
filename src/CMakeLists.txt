@@ -118,7 +118,7 @@ else()
 endif()
 
 target_include_directories(KQuickImageEditor PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/annotations>")
-target_include_directories(KQuickImageEditor INTERFACE "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor>")
+target_include_directories(KQuickImageEditor INTERFACE "$<INSTALL_INTERFACE:${KQuickImageEditor_INSTALL_INCLUDEDIR}>")
 
 ecm_finalize_qml_module(KQuickImageEditor DESTINATION ${KDE_INSTALL_QMLDIR} EXPORT KQuickImageEditorTargets)
 
@@ -136,12 +136,15 @@ include(ECMGeneratePriFile)
 ecm_generate_pri_file(BASE_NAME KQuickImageEditor LIB_NAME KQuickImageEditor DEPS "core qml quick" FILENAME_VAR PRI_FILENAME )
 
 install(TARGETS KQuickImageEditor EXPORT KQuickImageEditorTargets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-install(FILES ${KQuickImageEditor_FORWARDING_HEADERS} DESTINATION ${KQuickImageEditor_INSTALL_INCLUDEDIR} COMPONENT Devel)
+install(FILES ${KQuickImageEditor_FORWARDING_HEADERS}
+    DESTINATION ${KQuickImageEditor_INSTALL_INCLUDEDIR}/KQuickImageEditor
+    COMPONENT Devel
+)
 install(
     FILES
         ${KQuickImageEditor_HEADERS}
         ${CMAKE_CURRENT_BINARY_DIR}/kquickimageeditor_export.h
-    DESTINATION ${kquickimageeditor_INSTALL_INCLUDEDIR}
+    DESTINATION ${KQuickImageEditor_INSTALL_INCLUDEDIR}/kquickimageeditor
     COMPONENT Devel
 )
 install(FILES ${PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})
