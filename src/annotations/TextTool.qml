@@ -216,12 +216,27 @@ AnimatedLoader {
                 target: null
                 cursorShape: Qt.SizeAllCursor
                 dragThreshold: 0
-                onActiveTranslationChanged: if (active) {
-                    const dx = Utils.dprRound(activeTranslation.x, Screen.devicePixelRatio) / viewport.scale
-                    const dy = Utils.dprRound(activeTranslation.y, Screen.devicePixelRatio) / viewport.scale
-                    root.document.selectedItem.applyTransform(dx, dy)
+                property point lastDocumentPos
+                onActiveTranslationChanged: if (active && lastDocumentPos !== undefined) {
+                    // We use the difference between the current document position
+                    // and a stored document press position instead of activeTranslation
+                    // so that the real translation can be tracked regardless of how the view is scaled.
+                    let documentMousePos = Utils.sceneToDocumentPoint(centroid.scenePosition, root.viewport)
+
+                    let matrix = Qt.matrix4x4()
+                    matrix.translate(
+                        // We want the relative mouse movement since the last onActiveTranslationChanged
+                        Qt.vector2d(documentMousePos.x - lastDocumentPos.x, documentMousePos.y - lastDocumentPos.y)
+                    )
+                    root.document.selectedItem.applyTransform(matrix)
+                    lastDocumentPos = documentMousePos;
                 }
-                onActiveChanged: if (!active) {
+                // DragHandler::activeChanged is emitted before DragHandler::translationChanged.
+                // HandlerPoint is completely updated, so we don't want to do onCentroidChanged.
+                // Otherwise, we would update our document press position when we don't want to.
+                onActiveChanged: if (active) {
+                    lastDocumentPos = Utils.sceneToDocumentPoint(centroid.scenePressPosition, root.viewport)
+                } else {
                     root.document.selectedItem.commitChanges()
                 }
             }
