@@ -80,7 +80,7 @@ target_sources(KQuickImageEditor PRIVATE
 
 ecm_target_qml_sources(KQuickImageEditor SOURCES
     annotations/AnnotationSelectionTool.qml
-    annotations/CropTool.qml
+    annotations/RectangleSelectionTool.qml
     annotations/HoverOutline.qml
     annotations/TextTool.qml
     controls/BasicResizeHandle.qml
