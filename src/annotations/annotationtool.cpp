@@ -51,7 +51,9 @@ public:
     AnnotationTool::Options options = AnnotationTool::Option::NoOptions;
     int number = 1;
     QRectF cropGeometry;
+    QRectF transformGeometry;
     qreal cropAspectRatio = 0;
+    qreal transformAspectRatio = 0;
 };
 
 // Default value macros
@@ -203,6 +205,8 @@ constexpr AnnotationTool::Options AnnotationToolPrivate::optionsForType(Annotati
 {
     switch (type) {
     case CropTool:
+        return {GeometryOption, AspectRatioOption};
+    case ResizeTool:
         return {GeometryOption, AspectRatioOption};
     case SelectTool:
         return GeometryOption;
@@ -654,6 +658,8 @@ QRectF AnnotationToolPrivate::geometryForType(AnnotationTool::Tool type) const
     switch (type) {
     case CropTool:
         return cropGeometry;
+    case ResizeTool:
+        return transformGeometry;
     default:
         return {};
     }
@@ -669,6 +675,9 @@ void AnnotationToolPrivate::setGeometryForType(const QRectF &rect, AnnotationToo
     switch (type) {
     case CropTool:
         cropGeometry = rect;
+        return;
+    case ResizeTool:
+        transformGeometry = rect;
         return;
     default:
         return;
@@ -694,6 +703,8 @@ qreal AnnotationToolPrivate::aspectRatioForType(AnnotationTool::Tool type) const
     switch (type) {
     case CropTool:
         return cropAspectRatio;
+    case ResizeTool:
+        return transformAspectRatio;
     default:
         return {};
     }
@@ -710,6 +721,10 @@ void AnnotationToolPrivate::setAspectRatioforType(qreal ratio, AnnotationTool::T
     case CropTool:
         cropAspectRatio = ratio;
         cropGeometry = Utils::rectAspectRatioed(cropGeometry, ratio);
+        return;
+    case ResizeTool:
+        transformAspectRatio = ratio;
+        transformGeometry = Utils::rectAspectRatioed(transformGeometry, ratio);
         return;
     default:
         return;

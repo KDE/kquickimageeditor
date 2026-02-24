@@ -105,6 +105,7 @@ public:
         NoTool,
         // Meta tools
         CropTool,
+        ResizeTool,
         SelectTool,
         // Creation tools
         FreehandTool,
