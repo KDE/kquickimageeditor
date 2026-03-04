@@ -7,7 +7,9 @@ import org.kde.kirigami as Kirigami
 
 Loader {
     id: loader
+
     property int animationDuration: Kirigami.Units.shortDuration
+
     active: visible
     visible: opacity > 0
     // Using states because they stay in sync better than Behavior animations

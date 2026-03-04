@@ -2,16 +2,18 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as Controls
-import QtQuick.Templates as T
-import Qt.labs.platform
 import org.kde.kirigami as Kirigami
 import org.kde.kquickimageeditor
+import org.kde.ki18n
 
 Row {
     id: root
 
+    required property KI18nContext libI18n
     required property AnnotationDocument document
     readonly property AnnotationTool tool: document.tool
     readonly property SelectedItemWrapper selectedItem: document.selectedItem
@@ -57,8 +59,8 @@ Row {
 
             Controls.CheckBox {
                 anchors.verticalCenter: parent.verticalCenter
-                text: i18nc("@label, annotation tool option", "Stroke:")
-                checked: colorRect.color.a > 0
+                text: root.libI18n.i18nc("@label, annotation tool option", "Stroke:")
+                checked: colorRectStroke.color.a > 0
                 onToggled: if (root.useSelectionOptions) {
                     root.selectedItem.strokeColor.a = checked
                 } else {
@@ -89,12 +91,12 @@ Row {
                     // which ki18n uses so it doesn't matter that much
                     // unless someone decides to set the locale for a specific
                     // part of spectacle in the future.
-                    return i18ncp("px: pixels", "%1px", "%1px", Math.round(value))
+                    return root.libI18n.i18ncp("px: pixels", "%1px", "%1px", Math.round(value))
                 }
                 valueFromText: (text, locale) => {
                     return Number.fromLocaleString(locale, text.replace(/\D/g,''))
                 }
-                Controls.ToolTip.text: i18nc("@label, annotation tool option", "Stroke Width")
+                Controls.ToolTip.text: root.libI18n.i18nc("@label, annotation tool option", "Stroke Width")
                 Controls.ToolTip.visible: hovered
                 Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
                 // not using onValueModified because of https://bugreports.qt.io/browse/QTBUG-91281
@@ -124,9 +126,9 @@ Row {
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
                 display: Controls.ToolButton.IconOnly
-                Controls.ToolTip.text: i18nc("@label, annotation tool option", "Stroke Color")
+                Controls.ToolTip.text: root.libI18n.i18nc("@label, annotation tool option", "Stroke Color")
                 Rectangle { // should we use some kind of image provider instead?
-                    id: colorRect
+                    id: colorRectStroke
                     anchors.centerIn: parent
                     width: Kirigami.Units.gridUnit
                     height: Kirigami.Units.gridUnit
@@ -175,8 +177,8 @@ Row {
 
             Controls.CheckBox {
                 anchors.verticalCenter: parent.verticalCenter
-                text: i18nc("@label, annotation tool option", "Fill:")
-                checked: colorRect.color.a > 0
+                text: root.libI18n.i18nc("@label, annotation tool option", "Fill:")
+                checked: colorRectFill.color.a > 0
                 onToggled: if (root.useSelectionOptions) {
                     root.selectedItem.fillColor.a = checked
                 } else {
@@ -187,9 +189,9 @@ Row {
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
                 display: Controls.ToolButton.IconOnly
-                Controls.ToolTip.text: i18nc("@label", "Fill Color")
+                Controls.ToolTip.text: root.libI18n.i18nc("@label", "Fill Color")
                 Rectangle {
-                    id: colorRect
+                    id: colorRectFill
                     anchors.centerIn: parent
                     width: Kirigami.Units.gridUnit
                     height: Kirigami.Units.gridUnit
@@ -240,7 +242,7 @@ Row {
 
             Controls.Label {
                 anchors.verticalCenter: parent.verticalCenter
-                text: i18nc("@label:slider Strength of annotation tool effect", "Strength:")
+                text: root.libI18n.i18nc("@label:slider Strength of annotation tool effect", "Strength:")
             }
 
             Controls.Slider {
@@ -258,7 +260,7 @@ Row {
                 from: 0
                 to: 1
                 value: strength
-                Controls.ToolTip.text: i18nc("@info:tooltip", "The strength of the effect.")
+                Controls.ToolTip.text: root.libI18n.i18nc("@info:tooltip", "The strength of the effect.")
                 Controls.ToolTip.visible: hovered
                 Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
                 onMoved: setStrength()
@@ -283,7 +285,7 @@ Row {
                 leftPadding: root.mirrored ? 0 : parent.spacing
                 rightPadding: root.mirrored ? parent.spacing : 0
                 anchors.verticalCenter: parent.verticalCenter
-                text: i18nc("@label", "Font:")
+                text: root.libI18n.i18nc("@label", "Font:")
             }
 
             ToolButton {
@@ -296,8 +298,8 @@ Row {
                     font.family: currentFont.family
                     font.styleName: currentFont.styleName
                     text: font.styleName !== "" ?
-                        i18ncp("%2 font family, %3 font style name, %1 font point size", "%2 %3 %1pt", "%2 %3 %1pts", currentFont.pointSize, font.family, font.styleName) :
-                        i18ncp("%2 font family %1 font point size", "%2 %1pt", "%2 %1pts", currentFont.pointSize, font.family)
+                        root.libI18n.i18ncp("%2 font family, %3 font style name, %1 font point size", "%2 %3 %1pt", "%2 %3 %1pts", currentFont.pointSize, font.family, font.styleName) :
+                        root.libI18n.i18ncp("%2 font family %1 font point size", "%2 %1pt", "%2 %1pts", currentFont.pointSize, font.family)
                     elide: Text.ElideNone
                     wrapMode: Text.NoWrap
                     horizontalAlignment: Text.AlignHCenter
@@ -344,7 +346,7 @@ Row {
                 display: Controls.ToolButton.IconOnly
                 Controls.ToolTip.text: i18nc("@label", "Font Color")
                 Rectangle {
-                    id: colorRect
+                    id: colorRectFont
                     anchors.centerIn: parent
                     width: Kirigami.Units.gridUnit
                     height: Kirigami.Units.gridUnit
@@ -399,15 +401,15 @@ Row {
             }
 
             Controls.SpinBox {
-                id: spinBox
+                id: spinBoxNumber
                 readonly property int number: root.useSelectionOptions ? root.selectedItem.number : root.tool.number
                 anchors.verticalCenter: parent.verticalCenter
                 function setNumber() {
-                    if (root.useSelectionOptions && root.selectedItem.number !== spinBox.value) {
-                        root.selectedItem.number = spinBox.value
+                    if (root.useSelectionOptions && root.selectedItem.number !== spinBoxNumber.value) {
+                        root.selectedItem.number = spinBoxNumber.value
                         commitChangesTimer.restart()
                     } else {
-                        root.tool.number = spinBox.value
+                        root.tool.number = spinBoxNumber.value
                     }
                 }
                 from: -99
@@ -420,7 +422,7 @@ Row {
                 // not using onValueModified because of https://bugreports.qt.io/browse/QTBUG-91281
                 onValueChanged: Qt.callLater(setNumber)
                 Binding {
-                    target: spinBox.contentItem
+                    target: spinBoxNumber.contentItem
                     property: "horizontalAlignment"
                     value: Text.AlignRight
                     restoreMode: Binding.RestoreNone
@@ -482,13 +484,13 @@ Row {
             }
 
             component SpinBox : Controls.SpinBox {
-                id: spinBox
+                id: spinBoxPosition
                 anchors.verticalCenter: parent.verticalCenter
                 stepSize: 1
                 Controls.ToolTip.visible: hovered
                 Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
                 Binding {
-                    target: spinBox.contentItem
+                    target: spinBoxPosition.contentItem
                     property: "horizontalAlignment"
                     value: Text.AlignRight
                     restoreMode: Binding.RestoreNone

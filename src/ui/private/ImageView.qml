@@ -5,15 +5,14 @@
  * SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
  */
 
-import QtCore
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQml
-import QtQuick.Templates as T
 import QtQuick.Controls as Controls
-import QtQuick.Layouts
-import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
 import org.kde.kquickimageeditor as KQuickImageEditor
+import org.kde.ki18n
 
 Controls.Page {
     id: root
@@ -26,6 +25,7 @@ Controls.Page {
     readonly property real maxZoom: Math.max(minZoom, 8)
     readonly property real currentZoom: annotationEditor.scale
     property bool showCropTool: false
+    required property KI18nContext libI18n
 
     function dprRound(v: double): double {
         return Math.round(v * Screen.devicePixelRatio) / Screen.devicePixelRatio
@@ -97,8 +97,8 @@ Controls.Page {
             target: flickable
             keyNavigationEnabled: true
             scrollFlickableTarget: true
-            horizontalStepSize: dprRound(Application.styleHints.wheelScrollLines * 20)
-            verticalStepSize: dprRound(Application.styleHints.wheelScrollLines * 20)
+            horizontalStepSize: root.dprRound(Application.styleHints.wheelScrollLines * 20)
+            verticalStepSize: root.dprRound(Application.styleHints.wheelScrollLines * 20)
             onWheel: wheel => {
                     if (wheel.modifiers & Qt.ControlModifier && scrollFlickableTarget) {
                     // apparently it's impossible to add points to each other directly in QML
@@ -164,8 +164,8 @@ Controls.Page {
 
         AnnotationEditor {
             id: annotationEditor
-            x: dprRound((flickable.contentItem.width - annotationEditor.document.canvasRect.width * scale) / 2)
-            y: dprRound((flickable.contentItem.height - annotationEditor.document.canvasRect.height * scale) / 2)
+            x: root.dprRound((flickable.contentItem.width - annotationEditor.document.canvasRect.width * scale) / 2)
+            y: root.dprRound((flickable.contentItem.height - annotationEditor.document.canvasRect.height * scale) / 2)
             implicitWidth: annotationEditor.document.canvasRect.width
             implicitHeight: annotationEditor.document.canvasRect.height
             transformOrigin: Item.TopLeft
@@ -188,12 +188,12 @@ Controls.Page {
         AnimatedLoader {
             parent: flickable
             anchors.centerIn: parent
-            state: cropTool.item && !cropTool.item.activeFocus && cropTool.item.opacity === 0 ? "active" : "inactive"
+            state: cropTool.item && !(cropTool.item as Item).activeFocus && (cropTool.item as Item).opacity === 0 ? "active" : "inactive"
             sourceComponent: Kirigami.Heading {
                 id: cropToolHelp
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                text: i18nc("@info crop tool explanation", "Click and drag to make a selection.\nDouble click the selection to accept and crop.\nRight click to clear the selection.")
+                text: root.libI18n.i18nc("@info crop tool explanation", "Click and drag to make a selection.\nDouble click the selection to accept and crop.\nRight click to clear the selection.")
                 padding: cropToolHelpMetrics.height - cropToolHelpMetrics.descent
                 leftPadding: cropToolHelpMetrics.height
                 rightPadding: cropToolHelpMetrics.height

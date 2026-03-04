@@ -3,7 +3,8 @@
 // SPDX-FileCopyrightText: 2022 Noah Davis <noahadvs@gmail.com>
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 
-import QtCore
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQml
 import QtQuick.Templates as T
@@ -28,9 +29,15 @@ Kirigami.Page {
 
     readonly property string imageFileName: root.imagePath.substring(root.imagePath.lastIndexOf("/") + 1)
 
+    KI18nContext {
+        id: libI18n
+        translationDomain: "kquickimageeditor6"
+    }
+
+
     signal imageEdited()
 
-    title: xi18nc("@title", "Edit <filename>%1</filename>", root.imageFileName)
+    title: libI18n.xi18nc("@title", "Edit <filename>%1</filename>", root.imageFileName)
     topPadding: 0
     bottomPadding: 0
     leftPadding: 0
@@ -39,9 +46,9 @@ Kirigami.Page {
     function save(): bool {
         const ok = imageView.document.saveImage(imagePath.replace("file://", ""));
         if (!ok) {
-            root.msg.type = Kirigami.MessageType.Error
-            root.msg.text = i18nc("@label", "Unable to save file. Check if you have the correct permissions to save this file.")
-            root.msg.visible = true;
+            msg.type = Kirigami.MessageType.Error
+            msg.text = libI18n.i18nc("@label", "Unable to save file. Check if you have the correct permissions to save this file.")
+            msg.visible = true;
 
             return false;
         }
@@ -95,19 +102,19 @@ Kirigami.Page {
             checkable: true
             checked: false
             icon.name: checked ? "dialog-cancel" : "transform-scale"
-            text: checked ? i18nc("@action:button", "Cancel") : i18nc("@action:button Resize an image", "Resize");
+            text: checked ? libI18n.i18nc("@action:button", "Cancel") : libI18n.i18nc("@action:button Resize an image", "Resize");
         },
 
         Kirigami.Action {
             id: finishResizeAction
             property size targetSize: imageView.document.imageSize
             icon.name: "dialog-ok"
-            text: i18nc("@action:button Resize an image", "Resize");
+            text: libI18n.i18nc("@action:button Resize an image", "Resize");
             onTriggered: {
                 let matrix = Qt.matrix4x4()
                 const sx = targetSize.width / imageView.document.imageSize.width
                 const sy = targetSize.height / imageView.document.imageSize.height
-                scaleForViewer(matrix, getZDegrees(imageView.document.transform),
+                root.scaleForViewer(matrix, root.getZDegrees(imageView.document.transform),
                                sx, sy)
                 imageView.document.applyTransform(matrix)
                 startResizeAction.toggle()
@@ -129,7 +136,7 @@ Kirigami.Page {
         Kirigami.Action {
             visible: startResizeAction.checked
             displayComponent: Controls.Label {
-                text: i18nc("@title:group for crop area size spinboxes", "Size:")
+                text: libI18n.i18nc("@title:group for crop area size spinboxes", "Size:")
             }
         },
 
@@ -157,15 +164,15 @@ Kirigami.Page {
 
         Kirigami.Action {
             icon.name: "image-rotate-symbolic"
-            text: i18nc("@action:button Rotate an image", "Rotate")
+            text: libI18n.i18nc("@action:button Rotate an image", "Rotate")
             visible: !startResizeAction.checked
 
             Kirigami.Action {
                 icon.name: "image-rotate-left-symbolic"
-                text: i18nc("@action:button Rotate an image to the left", "Rotate Left")
+                text: libI18n.i18nc("@action:button Rotate an image to the left", "Rotate Left")
                 onTriggered: {
                     let matrix = Qt.matrix4x4()
-                    rotateForViewer(matrix, getScale(imageView.document.transform), -90)
+                    root.rotateForViewer(matrix, root.getScale(imageView.document.transform), -90)
                     imageView.document.applyTransform(matrix)
                 }
                 enabled: !startResizeAction.checked
@@ -174,10 +181,10 @@ Kirigami.Page {
 
             Kirigami.Action {
                 icon.name: "image-rotate-right-symbolic"
-                text: i18nc("@action:button Rotate an image to the right", "Rotate Right")
+                text: libI18n.i18nc("@action:button Rotate an image to the right", "Rotate Right")
                 onTriggered: {
                     let matrix = Qt.matrix4x4()
-                    rotateForViewer(matrix, getScale(imageView.document.transform), 90)
+                    root.rotateForViewer(matrix, root.getScale(imageView.document.transform), 90)
                     imageView.document.applyTransform(matrix)
                 }
                 enabled: !startResizeAction.checked
@@ -187,15 +194,15 @@ Kirigami.Page {
 
         Kirigami.Action {
             icon.name: "image-flip-horizontal-symbolic"
-            text: i18nc("@action:button Flip/mirror an image", "Flip")
+            text: libI18n.i18nc("@action:button Flip/mirror an image", "Flip")
             visible: !startResizeAction.checked
 
             Kirigami.Action {
                 icon.name: "image-flip-horizontal-symbolic"
-                text: i18nc("@action:button Flip/mirror an image horizontally", "Flip Horizontally")
+                text: libI18n.i18nc("@action:button Flip/mirror an image horizontally", "Flip Horizontally")
                 onTriggered: {
                     let matrix = Qt.matrix4x4()
-                    scaleForViewer(matrix, getZDegrees(imageView.document.transform),
+                    root.scaleForViewer(matrix, root.getZDegrees(imageView.document.transform),
                                 -1, 1)
                     imageView.document.applyTransform(matrix)
                 }
@@ -204,10 +211,10 @@ Kirigami.Page {
 
             Kirigami.Action {
                 icon.name: "image-flip-vertical-symbolic"
-                text: i18nc("@action:button Flip/mirror an image vertically", "Flip Vertically")
+                text: libI18n.i18nc("@action:button Flip/mirror an image vertically", "Flip Vertically")
                 onTriggered: {
                     let matrix = Qt.matrix4x4()
-                    scaleForViewer(matrix, getZDegrees(imageView.document.transform),
+                    root.scaleForViewer(matrix, root.getZDegrees(imageView.document.transform),
                                 1, -1)
                     imageView.document.applyTransform(matrix)
                 }
@@ -220,7 +227,7 @@ Kirigami.Page {
         },
 
         Kirigami.Action {
-            text: i18nc("@action:button", "Undo")
+            text: libI18n.i18nc("@action:button", "Undo")
             icon.name: "edit-undo-symbolic"
             enabled: imageView.document.undoStackDepth > 0
             onTriggered: imageView.document.undo()
@@ -229,7 +236,7 @@ Kirigami.Page {
         },
 
         Kirigami.Action {
-            text: i18nc("@action:button", "Redo")
+            text: libI18n.i18nc("@action:button", "Redo")
             icon.name: "edit-redo-symbolic"
             enabled: imageView.document.redoStackDepth > 0
             onTriggered: imageView.document.redo()
@@ -244,7 +251,7 @@ Kirigami.Page {
         Kirigami.Action {
             id: saveAction
             enabled: imageView.document.modified
-            text: i18nc("@action:button Save image modification", "Save")
+            text: libI18n.i18nc("@action:button Save image modification", "Save")
             icon.name: "document-save-symbolic"
             onTriggered: root.save()
             shortcut: StandardKey.Save
@@ -252,7 +259,7 @@ Kirigami.Page {
 
         Kirigami.Action {
             id: saveAsAction
-            text: i18nc("@action:button Save As image modification", "Save As")
+            text: libI18n.i18nc("@action:button Save As image modification", "Save As")
             icon.name: "document-save-as-symbolic"
             onTriggered: saveAsDialog.open()
             shortcut: StandardKey.SaveAs
@@ -276,6 +283,7 @@ Kirigami.Page {
             contentItem: AnnotationsToolBarContents {
                 id: annotationsToolBarContents
 
+                libI18n: libI18n
                 document: imageView.document
                 displayMode: Controls.AbstractButton.IconOnly
                 flow: Grid.TopToBottom
@@ -301,6 +309,7 @@ Kirigami.Page {
             id: imageView
 
             showCropTool: annotationsToolBarContents.usingCropTool
+            libI18n: libI18n
 
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -326,7 +335,7 @@ Kirigami.Page {
             const ok = imageView.document.saveImage(saveAsDialog.selectedFile.toString().replace("file://", ""));
             if (!ok) {
                 msg.type = Kirigami.MessageType.Error
-                msg.text = i18nc("@label", "Unable to save file. Check if you have the correct permissions to save this file.")
+                msg.text = libI18n.i18nc("@label", "Unable to save file. Check if you have the correct permissions to save this file.")
                 msg.visible = true;
                 return;
             }
@@ -347,6 +356,7 @@ Kirigami.Page {
         id: confirmDiscardingChangesDialog
 
         imageFileName: root.imageFileName
+        libI18n: libI18n
 
         onSaveChanges: {
             if (root.save()) {
@@ -411,6 +421,8 @@ Kirigami.Page {
 
             AnnotationOptionsToolBarContents {
                 id: annotationOptionsToolBarContents
+
+                libI18n: libI18n
                 document: imageView.document
                 visible: (imageView.document.tool.options !== KQuickImageEditor.AnnotationTool.NoOptions
                           || (imageView.document.tool.type === KQuickImageEditor.AnnotationTool.SelectTool
@@ -422,7 +434,7 @@ Kirigami.Page {
             }
 
             Controls.Label {
-                text: i18nc("@label", "Zoom:")
+                text: libI18n.i18nc("@label", "Zoom:")
             }
 
             Controls.SpinBox {
@@ -437,7 +449,7 @@ Kirigami.Page {
                 valueFromText: (text, locale) => {
                     return Number.fromLocaleString(locale, text.replace(/\D/g,''))
                 }
-                Controls.ToolTip.text: i18nc("@info:tooltip", "Image Zoom")
+                Controls.ToolTip.text: libI18n.i18nc("@info:tooltip", "Image Zoom")
                 Controls.ToolTip.visible: hovered
                 Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
                 Binding {

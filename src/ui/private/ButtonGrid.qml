@@ -2,12 +2,15 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
 
 Grid {
     id: root
+
     property int displayMode: Controls.AbstractButton.TextBesideIcon
     property int focusPolicy: Qt.StrongFocus
     readonly property bool mirrored: effectiveLayoutDirection === Qt.RightToLeft
