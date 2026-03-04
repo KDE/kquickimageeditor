@@ -17,12 +17,33 @@ import org.kde.kquickimageeditor.ui as UI
 import org.kde.ki18n
 import 'private'
 
+/*!
+   \qmltype ImageEditorPage
+   \inqmlmodule org.kde.kquickimageeditor.ui
+   \brief An image editor as a Kirigami Page.
+ */
 Kirigami.Page {
     id: root
 
+    /*!
+       \qmlproperty Kirigami.ApplicationWindow mainWindow
+       This property holds the main application window.
+     */
     required property Kirigami.ApplicationWindow mainWindow
 
+    /*!
+       \qmlproperty string imagePath
+       This property holds the path to the image that is edited.
+     */
     property string imagePath
+
+    /*!
+       \brief This signal is emitted when the image is edited.
+     */
+    signal imageEdited()
+
+    // remaining properties/functions are private. Use at your own risk!!!!
+
     onImagePathChanged: {
         imageView.document.setBaseImage(imagePath.replace("file://", ""))
     }
@@ -33,9 +54,6 @@ Kirigami.Page {
         id: libI18n
         translationDomain: "kquickimageeditor6"
     }
-
-
-    signal imageEdited()
 
     title: libI18n.xi18nc("@title", "Edit <filename>%1</filename>", root.imageFileName)
     topPadding: 0
