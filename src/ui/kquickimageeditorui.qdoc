@@ -1,0 +1,6 @@
+/*!
+   \qmlmodule org.kde.kquickimageeditor.ui
+   \title KQuickImageEditor UI QML Types
+   \inmodule qmlmodules
+   \brief QML components providing an image editor that can be embeded in your application as a Kirigami.Page
+ */

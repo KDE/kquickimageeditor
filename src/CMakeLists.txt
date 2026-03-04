@@ -135,6 +135,8 @@ ecm_generate_headers(KQuickImageEditor_FORWARDING_HEADERS
 include(ECMGeneratePriFile)
 ecm_generate_pri_file(BASE_NAME KQuickImageEditor LIB_NAME KQuickImageEditor DEPS "core qml quick" FILENAME_VAR PRI_FILENAME )
 
+add_subdirectory(ui)
+
 install(TARGETS KQuickImageEditor EXPORT KQuickImageEditorTargets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 install(FILES ${KQuickImageEditor_FORWARDING_HEADERS}
     DESTINATION ${KQuickImageEditor_INSTALL_INCLUDEDIR}/KQuickImageEditor

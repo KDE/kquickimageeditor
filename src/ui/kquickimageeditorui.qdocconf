@@ -1,0 +1,24 @@
+include($KDE_DOCS/global/qt-module-defaults.qdocconf)
+
+project = KQuickImageEditorUI
+description = QML components providing an image editor that can be embeded in your application as a Kirigami.Page
+
+documentationinheaders = true
+
+headerdirs += .
+sourcedirs += .
+imagedirs = . ../../docs/pics
+
+outputformats = HTML
+
+depends += kde kirigami qtcore qtquick qtquickcontrols qtgui
+
+qhp.projects = KQuickImageEditorUI
+
+qhp.KQuickImageEditor.file          = kquickimageeditorui.qhp
+qhp.KQuickImageEditor.namespace     = org.kde.kquickimageeditor.ui.$QT_VERSION_TAG
+qhp.KQuickImageEditor.virtualFolder = kquickimageeditorui
+qhp.KQuickImageEditor.indexTitle    = KQuickImageEditorUI
+qhp.KQuickImageEditor.indexRoot     =
+
+tagfile = kquickimageeditorui.tags
