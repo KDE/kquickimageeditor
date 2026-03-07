@@ -67,7 +67,7 @@ class ImageDocument : public QObject
 
 public:
     ImageDocument(QObject *parent = nullptr);
-    ~ImageDocument() override = default;
+    ~ImageDocument() override;
 
     QImage image() const;
 

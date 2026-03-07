@@ -22,6 +22,12 @@ ImageDocument::ImageDocument(QObject *parent)
     });
 }
 
+ImageDocument::~ImageDocument()
+{
+    qDeleteAll(m_undos);
+    m_undos.clear();
+}
+
 void ImageDocument::cancel()
 {
     while (!m_undos.empty()) {
