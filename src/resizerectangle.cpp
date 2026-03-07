@@ -22,7 +22,7 @@ void ResizeRectangle::componentComplete()
 {
     QQuickItem::componentComplete();
     QQmlEngine *engine = qmlEngine(this);
-    m_handleComponent = new QQmlComponent(engine, QUrl(QStringLiteral("qrc:/BasicResizeHandle.qml")));
+    m_handleComponent = new QQmlComponent(engine, QUrl(QStringLiteral("qrc:/BasicResizeHandle.qml")), this);
 
     auto handleItem = qobject_cast<QQuickItem *>(m_handleComponent->create());
     qDebug() << handleItem;
