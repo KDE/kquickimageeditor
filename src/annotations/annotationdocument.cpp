@@ -8,6 +8,7 @@
 #include "utils.h"
 
 #include <QGuiApplication>
+#include <QImageReader>
 #include <QPainter>
 #include <QPainterPath>
 #include <QQuickItem>
@@ -179,12 +180,14 @@ void AnnotationDocument::setBaseImage(const QImage &image)
 
 void AnnotationDocument::setBaseImage(const QString &path)
 {
-    setBaseImage(QImage(path));
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    setBaseImage(reader.read());
 }
 
 void AnnotationDocument::setBaseImage(const QUrl &localFile)
 {
-    setBaseImage(QImage(localFile.toLocalFile()));
+    setBaseImage(localFile.toLocalFile());
 }
 
 void AnnotationDocument::cropCanvas(const QRectF &cropRect)
