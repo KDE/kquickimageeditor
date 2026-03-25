@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <QImageReader>
+
 #include "imagedocument.h"
 
 #include "commands/cropcommand.h"
@@ -15,7 +17,9 @@ ImageDocument::ImageDocument(QObject *parent)
     : QObject(parent)
 {
     connect(this, &ImageDocument::pathChanged, this, [this](const QUrl &url) {
-        m_image = QImage(url.isLocalFile() ? url.toLocalFile() : url.toString());
+        QImageReader reader(url.isLocalFile() ? url.toLocalFile() : url.toString());
+        reader.setAutoTransform(true);
+        m_image = reader.read();
         m_edited = false;
         Q_EMIT editedChanged();
         Q_EMIT imageChanged();
