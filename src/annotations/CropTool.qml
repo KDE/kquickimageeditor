@@ -114,6 +114,12 @@ Loader {
                 rect = Utils.rectClipped(rect, baseItem.maxRect())
                 baseItem.setItemRect(selectionItem, rect)
             }
+            function onCanvasRectChanged() {
+                // A canvasRectChanged signal would likely be caused by another
+                // canvas transformation that would invalidate whatever crop
+                // area the user previously set.
+                root.tool.geometry = undefined
+            }
         }
 
         component Overlay: Rectangle {
