@@ -26,7 +26,6 @@ include(ECMAddTests)
 include(ECMSetupVersion)
 include(ECMGenerateExportHeader)
 include(ECMGenerateHeaders)
-include(ECMGenerateQmlTypes)
 include(ECMQmlModule)
 include(ECMGenerateQDoc)
 
