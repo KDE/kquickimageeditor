@@ -243,12 +243,24 @@ public:
         p.end();
         const qreal sigma = Traits::Shadow::radius * devicePixelRatio * 6;
         const int kernelSize = (int)std::round(sigma + 1) | 1;
-        // Do this before converting to Alpha8 because stackBlur gets distorted with Alpha8.
+        // Do this before converting because stackBlur gets distorted with Alpha8.
         StackBlur::blur(shadow, {kernelSize, kernelSize});
-        // We only want black shadows with opacity, so we only need black and 8 bits of alpha.
-        // If we don't do this, color emojis won't have black semi-transparent shadows.
-        shadow.convertTo(QImage::Format_Alpha8);
-        return shadow;
+        // Don't convert to Format_Alpha8: on Qt 6 + Wayland the resulting alpha-only
+        // image renders as opaque black instead of alpha-modulated black, producing
+        // visible solid-black rectangles behind every annotation. The shadow was already
+        // drawn as semi-transparent black on RGBA8888_Premultiplied; keep that format.
+        // To still force black for color content (e.g. color emojis) we re-paint
+        // every pixel as black, masked by the existing alpha channel.
+        QImage blackShadow(shadow.size(), QImage::Format_ARGB32_Premultiplied);
+        blackShadow.setDevicePixelRatio(shadow.devicePixelRatio());
+        blackShadow.fill(Qt::transparent);
+        QPainter mask(&blackShadow);
+        mask.setCompositionMode(QPainter::CompositionMode_Source);
+        mask.fillRect(blackShadow.rect(), Qt::black);
+        mask.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+        mask.drawImage(0, 0, shadow);
+        mask.end();
+        return blackShadow;
     }
 
     /*!
