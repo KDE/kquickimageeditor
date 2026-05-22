@@ -53,6 +53,7 @@ target_sources(KQuickImageEditor PRIVATE
     annotations/history.h
     annotations/qmlpainterpath.cpp
     annotations/qmlpainterpath.h
+    annotations/stackblur.cpp
     annotations/stackblur.h
     annotations/traits.cpp
     annotations/traits.h
@@ -108,14 +109,6 @@ target_link_libraries(KQuickImageEditor
     KF6::ConfigCore
     KF6::ConfigGui
 )
-if (WITH_OPENCV)
-    target_sources(KQuickImageEditor PRIVATE annotations/stackblur_opencv.cpp)
-    kde_target_enable_exceptions(KQuickImageEditor PRIVATE)
-    target_include_directories(KQuickImageEditor PRIVATE ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(KQuickImageEditor PRIVATE ${OpenCV_LIBRARIES})
-else()
-    target_sources(KQuickImageEditor PRIVATE annotations/stackblur.cpp)
-endif()
 
 target_include_directories(KQuickImageEditor PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/annotations>")
 target_include_directories(KQuickImageEditor INTERFACE "$<INSTALL_INTERFACE:${KQuickImageEditor_INSTALL_INCLUDEDIR}>")

@@ -33,11 +33,6 @@ include(ECMGenerateQDoc)
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
 
-cmake_dependent_option(WITH_OPENCV "Build with OpenCV stack blur (recommended)" TRUE "UNIX AND NOT ANDROID" FALSE)
-if(WITH_OPENCV)
-    find_package(OpenCV 4.7 COMPONENTS core imgproc REQUIRED)
-endif()
-
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
 set(KQuickImageEditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor)
 set(kquickimageeditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/kquickimageeditor)
