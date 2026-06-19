@@ -138,10 +138,7 @@ void Traits::ImageEffects::Blur::setStrength(qreal strength)
 
 QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage, const QRectF &rect, qreal dpr) const
 {
-    if ((m_backingStoreCache.isNull() //
-         || m_backingStoreCache.devicePixelRatio() != dpr //
-         || m_backingStoreCache.text(strengthKey).toDouble() != m_strength)
-        && getImage) {
+    if (getImage && (m_backingStoreCache.isNull() || m_backingStoreCache.devicePixelRatio() != dpr)) {
         m_backingStoreCache = getImage();
         if (m_backingStoreCache.isNull()) {
             return m_backingStoreCache;
@@ -157,7 +154,6 @@ QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage
         const int kernelSize = (int)std::round(sigma + 1) | 1;
         StackBlur::blur(m_backingStoreCache, {kernelSize, kernelSize});
         m_backingStoreCache.setDevicePixelRatio(dpr);
-        m_backingStoreCache.setText(strengthKey, strengthString(m_strength));
     }
     QRect copyRect = Utils::rectScaled(rect, m_backingStoreCache.devicePixelRatio()).toAlignedRect();
     if (copyRect.size() != m_backingStoreCache.size()) {
