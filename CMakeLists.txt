@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
 include(FeatureSummary)
 include(CMakePackageConfigHelpers)
+include(CMakeDependentOption)
 
 include(KDEInstallDirs)
 include(KDECMakeSettings)
@@ -32,7 +33,7 @@ include(ECMGenerateQDoc)
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
 
-option(WITH_OPENCV "Build with OpenCV stack blur (recommended)" UNIX)
+cmake_dependent_option(WITH_OPENCV "Build with OpenCV stack blur (recommended)" TRUE UNIX FALSE)
 if(WITH_OPENCV)
     find_package(OpenCV 4.7 COMPONENTS core imgproc REQUIRED)
 endif()
