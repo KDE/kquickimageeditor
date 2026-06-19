@@ -146,8 +146,6 @@ QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage
         if (m_backingStoreCache.isNull()) {
             return m_backingStoreCache;
         }
-        // RGBA is better for use with stackblur
-        m_backingStoreCache.convertTo(QImage::Format_RGBA8888_Premultiplied);
         // Below this, the effect is nearly invisible.
         static const qreal min = 0.5;
         // Above this, glitches with color splotches happen.
