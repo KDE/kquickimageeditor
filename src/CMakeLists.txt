@@ -108,7 +108,7 @@ target_link_libraries(KQuickImageEditor
     KF6::ConfigCore
     KF6::ConfigGui
 )
-if (OpenCV_DIR)
+if (WITH_OPENCV)
     target_sources(KQuickImageEditor PRIVATE annotations/stackblur_opencv.cpp)
     kde_target_enable_exceptions(KQuickImageEditor PRIVATE)
     target_include_directories(KQuickImageEditor PRIVATE ${OpenCV_INCLUDE_DIRS})
