@@ -5,14 +5,16 @@
 //
 // This implementation is based on the version in Anti-Grain Geometry Version 2.4,
 // SPDX-FileCopyrightText: 2002-2005 Maxim Shemanarev (http://www.antigrain.com)
+// SPDX-FileCopyrightText: 2010 Mario Klingemann <mario@quasimondo.com>
+// SPDX-FileCopyrightText: 2026 Noah Davis <noahadvs@gmail.com>
 //
 // SPDX-License-Identifier: BSD-2-Clause
 
 #include "stackblur.h"
 
-#include <QPainter>
-#include <QImage>
 #include <QColor>
+#include <QImage>
+#include <QPainter>
 
 static unsigned short const mulTable[255] = {
     512, 512, 456, 512, 328, 456, 335, 512, 405, 328, 271, 456, 388, 335, 292, 512, 454, 405, 364, 328, 298, 271, 496, 456, 420, 388, 360, 335, 312,
@@ -34,8 +36,17 @@ static unsigned char const shgTable[255] = {
     24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
     24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24};
 
-void StackBlur::blur(QImage &image, int radiusX, int radiusY)
+namespace StackBlur
 {
+
+void blur(QImage &image, int radiusX, int radiusY)
+{
+    static constexpr auto supportedFormats = supportedImageFormats();
+    // Null images will have Format_Invalid. Images with (width < 1 || height < 1)
+    // will be null, so this also checks if the size is valid.
+    if (std::find(supportedFormats.begin(), supportedFormats.end(), image.format()) == supportedFormats.end()) {
+        return;
+    }
     if (radiusX < 1 && radiusY < 1) {
         return;
     }
@@ -209,9 +220,9 @@ void StackBlur::blur(QImage &image, int radiusX, int radiusY)
                 image.setPixel(x,
                                y,
                                qRgba((rsum * mulTable[radiusY]) >> shgTable[radiusY],
-                                    (gsum * mulTable[radiusY]) >> shgTable[radiusY],
-                                    (bsum * mulTable[radiusY]) >> shgTable[radiusY],
-                                    (asum * mulTable[radiusY]) >> shgTable[radiusY]));
+                                     (gsum * mulTable[radiusY]) >> shgTable[radiusY],
+                                     (bsum * mulTable[radiusY]) >> shgTable[radiusY],
+                                     (asum * mulTable[radiusY]) >> shgTable[radiusY]));
 
                 rsum -= routsum;
                 gsum -= goutsum;
@@ -260,3 +271,5 @@ void StackBlur::blur(QImage &image, int radiusX, int radiusY)
         }
     }
 }
+
+} // namespace StackBlur
