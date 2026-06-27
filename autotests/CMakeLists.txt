@@ -4,6 +4,7 @@
 find_package(Qt6 ${REQUIRED_QT_VERSION} CONFIG REQUIRED Test)
 
 add_executable(stackblurtest_bin
+    stackblurtest_helpers.h
     stackblurtest.cpp
     ../src/annotations/stackblur.cpp
 )
