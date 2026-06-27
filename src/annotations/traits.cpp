@@ -143,8 +143,8 @@ QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage
         if (m_backingStoreCache.isNull()) {
             return m_backingStoreCache;
         }
-        static constexpr auto min = 1;
-        static constexpr auto max = 254;
+        const auto min = StackBlur::minRadius();
+        const auto max = StackBlur::maxRadius();
         // Scales with DPR to keep the effect looking similar for different image DPRs.
         const qreal dynamicMin = 1 * dpr;
         const qreal dynamicMax = 64 * dpr;
