@@ -18,6 +18,8 @@ static_assert(std::same_as<decltype(CV_8U), int>);
 inline constexpr int matType(QPixelFormat::TypeInterpretation typeInterpretation)
 {
     switch (typeInterpretation) {
+    // ARGB32 has UnsignedInteger, but it's still four uint8 channels
+    case QPixelFormat::UnsignedInteger:
     case QPixelFormat::UnsignedByte:
         return CV_8U;
     case QPixelFormat::UnsignedShort:
