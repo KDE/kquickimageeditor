@@ -8,9 +8,28 @@ add_executable(stackblurtest_bin
     stackblurtest.cpp
     ../src/annotations/stackblur.cpp
 )
-target_link_libraries(stackblurtest_bin Qt::Test Qt::Gui)
+# needed to compile with Highway's dynamic dispatch
+target_include_directories(stackblurtest_bin PRIVATE ../src/annotations)
+target_link_libraries(stackblurtest_bin PRIVATE Qt::Test Qt::Gui Qt::Concurrent hwy::hwy)
 ecm_mark_as_test(stackblurtest_bin)
+add_test(NAME stackblurtest COMMAND stackblurtest_bin)
+# Timeout after 10 seconds in case it hangs.
+set_tests_properties(stackblurtest PROPERTIES TIMEOUT 10)
 
+add_executable(stackblurbenchmark_bin
+    stackblurtest_helpers.h
+    stackblurbenchmark.cpp
+    ../src/annotations/stackblur.cpp
+)
+# needed to compile with Highway's dynamic dispatch
+target_include_directories(stackblurbenchmark_bin PRIVATE ../src/annotations)
+target_link_libraries(stackblurbenchmark_bin PRIVATE Qt::Test Qt::Gui Qt::Concurrent hwy::hwy)
+# Enable benchmark specific features
+target_compile_definitions(stackblurbenchmark_bin PRIVATE STACKBLURBENCHMARK)
+ecm_mark_as_test(stackblurbenchmark_bin)
 # Run the benchmarks with just 1 iteration during CI, so we known it works
-add_test(NAME stackblurtest COMMAND stackblurtest_bin "-iterations" "10")
-
+# Run the binary manually if you want to do a heavier test.
+add_test(NAME stackblurbenchmark_smoketest COMMAND stackblurbenchmark_bin "-iterations" "1")
+# Timeout after 10 seconds in case it hangs.
+# Limit smoketest variables to small sizes to keep it fast.
+set_tests_properties(stackblurbenchmark_smoketest PROPERTIES TIMEOUT 10 ENVIRONMENT "STACKBLURBENCHMARK_RESOLUTION=min;STACKBLURBENCHMARK_RADIUS=min")
