@@ -13,6 +13,10 @@
 
 using namespace StackBlur;
 
+// Prevent multiple inclusion when <hwy/foreach_target.h> re-includes this file.
+#ifndef HELPERS_DEFINED
+#define HELPERS_DEFINED
+
 namespace StackBlur
 {
 /*
@@ -112,7 +116,19 @@ constexpr MathType radiusMultiplier(Px radius)
 #define DECL_OPTIMIZED_PTR(UnderlyingType, varName, ptr, align) UnderlyingType *HWY_RESTRICT varName = GET_OPTIMIZED_PTR(UnderlyingType, ptr, align)
 
 } // namespace StackBlur
+#endif // HELPERS_DEFINED
 
+// HWY_TARGET_INCLUDE must be defined as the file with the code to be copied for
+// each target before including <hwy/foreach_target.h>.
+#undef HWY_TARGET_INCLUDE
+#define HWY_TARGET_INCLUDE "stackblur.cpp"
+// <hwy/foreach_target.h> is a special header that copies the code from
+// HWY_TARGET_INCLUDE for each target. Ensure that only code that should be
+// copied is copied using `#ifndef #define MY_DEFINITION [code here…] #endif`
+// guards or `#if HWY_ONCE [code here…] #endif`.
+// HWY_ONCE can only be used once.
+#include <hwy/foreach_target.h>
+// <hwy/foreach_target.h> must be included before <hwy/highway.h>
 #include <hwy/highway.h>
 
 // Set up SIMD code for each target in the following HWY_NAMESPACE.
@@ -236,6 +252,9 @@ HWY_ATTR HWY_API void storeVecToPtr(FromVec from, InterTag inter, ToTag to, hn::
 } // namespace StackBlur::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE(); // Required to finish the SIMD code setup
 
+// Prevent multiple inclusion in each Highway target. Can only be used once.
+#if HWY_ONCE
+
 namespace StackBlur
 {
 
@@ -257,3 +276,4 @@ void blur(QImage &image, Px radiusX, Px radiusY)
 }
 
 } // namespace StackBlur
+#endif // HWY_ONCE
