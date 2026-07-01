@@ -474,6 +474,105 @@ HWY_AFTER_NAMESPACE(); // Required to finish the SIMD code setup
 
 namespace StackBlur
 {
+template<ChannelType C_t, size_t Channels, size_t Alignment>
+    requires ChannelCount<Channels> && IsPow2<Alignment>
+void exec(QImage &image, Px radiusX, Px radiusY)
+{
+    using BlurTask = BlurTask<C_t, Channels, Alignment>;
+    using BlurTaskList = QList<BlurTask>;
+    using TransposeTask = TransposeTask<C_t, Channels, Alignment>;
+    using TransposeTaskList = QList<TransposeTask>;
+    const Px w = image.width();
+    const Px h = image.height();
+    const size_t strideElements = w * Channels;
+    C_t *data = reinterpret_cast<C_t *>(image.bits());
+    // `HWY_EXPORT_T` has you set a function table name and a function.
+    // It is how you export template functions, but it only works with
+    // a single template. If you try `myFunc<Arg1, Arg2>`, it won't work.
+    // You also can't export `noexcept` functions.
+    HWY_EXPORT_T(blurRowWorker, blurRowWorker<BlurTask>);
+    HWY_EXPORT_T(transposeWorker, transposeWorker<TransposeTask>);
+
+    /*
+    The CPU is faster at processing image data in tiles.
+
+    We only iterate over tiles when transposing image data because the blur
+    needs to access all neighboring pixels on the same row. We still split
+    the rows into chunks by tiles for blurring so that the threads are split
+    in a more cache friendly way.
+
+    This logic is an attempt to scale tile size with the amount of data
+    being processed. It's hard to figure out a way to calculate this
+    with a linear equation. I've tried using quantities of bytes, but
+    performance doesn't necessarily scale with bytes as you'd think.
+    For example, larger tile sizes are worse for processing very large
+    images (fairly straight forward relationship). However, if a format
+    has fewer and smaller channels (e.g., Alpha8), its speed still scales
+    with tile size (in pixel positions) similarly to larger formats like
+    ARGB32 or RGBA64. Then there are times when larger tiles slow down
+    Alpha8 and speed up RGBA64 or the opposite happens. Sometimes ARGB32.
+    is the one that slows down while RGBA64 becomes even faster than ARGB32.
+    It also depends on the hardware. For reference, I was testing with an
+    AMD Ryzen 7 4800H CPU. This is the best I could come up with.
+    When I speak of ARGB32 and RGBA64, they are the premultiplied variants.
+    If you want to do your own testing, use the STACKBLURBENCHMARK_TILESIZE
+    and STACKBLURBENCHMARK_RESOLUTION environment variables and the
+    -iterations CLI option when running stackblurbenchmark_bin manually.
+
+    I've also tried longer and wider tiles, but they didn't really improve
+    anything.
+    */
+    const Px tileSize = [w] {
+        // Above somewhere around this size, 64 becomes slower than 32.
+        // We use width for the threshold because height is split by threads
+        // while width is not. Sometimes tall images are easier to deal with
+        // even if they're less cache friendly.
+        if (w <= 8192) {
+            // This works fine for all formats and sizes below the threshold
+            return 64;
+        }
+        // This works fine for all formats and sizes above the threshold
+        return 32;
+    }();
+
+    if (radiusX >= 1) {
+        const auto blurTasks = makeTasks<BlurTaskList>(h, tileSize, [&](BlurTaskList &tasks, Px start, Px end) {
+            tasks.push_back({data, strideElements, w, radiusX, start, end});
+        });
+        // HWY_DYNAMIC_POINTER_T is actually the same as HWY_DYNAMIC_POINTER
+        // but it has slightly different semantics since the arg name is
+        // TABLE_NAME.
+        maybeBlockingMap(blurTasks, HWY_DYNAMIC_POINTER_T(blurRowWorker));
+    }
+
+    if (radiusY >= 1) {
+        // Transpose to make the vertical pass more cache friendly.
+        // It's also easier to split threads by height than width while
+        // preventing sections of memory from being shared between threads.
+        // Transposing turns width into height, so it solves that issue too.
+        // NOTE: An RGBA64 screenshot of three 4K monitors will need
+        // 199'065'600 bytes, which is kind of a lot.
+        hwy::AlignedVector<C_t> transBuffer(w * h * Channels);
+        const size_t transStrideElements = h * Channels;
+
+        auto transTasks = makeTasks<TransposeTaskList>(h, tileSize, [&](TransposeTaskList &tasks, Px start, Px end) {
+            tasks.push_back({data, transBuffer.data(), strideElements, transStrideElements, w, h, start, end, tileSize, tileSize});
+        });
+        maybeBlockingMap(transTasks, HWY_DYNAMIC_POINTER_T(transposeWorker));
+
+        // Blur the transposed image
+        const auto blurTasks = makeTasks<BlurTaskList>(w, tileSize, [&](BlurTaskList &tasks, Px start, Px end) {
+            tasks.push_back({transBuffer.data(), transStrideElements, h, radiusY, start, end});
+        });
+        maybeBlockingMap(blurTasks, HWY_DYNAMIC_POINTER_T(blurRowWorker));
+
+        // Untranspose
+        transTasks = makeTasks<TransposeTaskList>(w, tileSize, [&](TransposeTaskList &tasks, Px start, Px end) {
+            tasks.push_back({transBuffer.data(), data, transStrideElements, strideElements, h, w, start, end, tileSize, tileSize});
+        });
+        maybeBlockingMap(transTasks, HWY_DYNAMIC_POINTER_T(transposeWorker));
+    }
+}
 
 void blur(QImage &image, Px radiusX, Px radiusY)
 {
@@ -490,6 +589,64 @@ void blur(QImage &image, Px radiusX, Px radiusY)
     if (radiusX < minRadius() && radiusY < minRadius()) {
         return;
     }
+
+    // Never use copy captures that copy the QImage (e.g., [=], [image, …])
+    // for these lambdas. If you do, the QImage will be copied and the next time
+    // we use `QImage &` or call a QImage function that could modify its data,
+    // the QImage will "detach" and all of the underlying data will be copied.
+
+    auto execAlignment = [&]<ChannelType C_t, size_t Channels, size_t PixelAlignment>
+        requires ChannelCount<Channels> && IsPow2<PixelAlignment> && IsPow2<HWY_ALIGNMENT>
+    {
+        static_assert(std::is_same_v<decltype(image), QImage &>, "Don't copy the QImage. Otherwise, you'll detach it again.");
+        // Knowing alignment allows us to help the compiler make optimizations.
+
+        // QImage::constScanLine docs:
+        // The scanline data is as minimum 32-bit aligned. For 64-bit
+        // formats it follows the native alignment of 64-bit integers
+        // (64-bit for most platforms, but notably 32-bit on i386).
+        static constexpr size_t minAlignment = alignof(uint32_t);
+        // size_t is 32bit on i386.
+        static constexpr size_t formatAlignment = std::clamp(PixelAlignment, minAlignment, alignof(size_t));
+        // <hwy/aligned_allocator.h> HWY_ALIGNMENT docs:
+        // Minimum alignment of allocated memory for use in HWY_ASSUME_ALIGNED, which
+        // requires a literal. To prevent false sharing, this should be at least the
+        // L1 cache line size, usually 64 bytes. However, Intel's L2 prefetchers may
+        // access pairs of lines, and M1 L2 and POWER8 lines are also 128 bytes.
+        static constexpr size_t minL2CacheAlignment = std::max(size_t{HWY_ALIGNMENT}, formatAlignment);
+        static constexpr size_t minL1CacheAlignment = std::max(64uz, formatAlignment);
+
+        // `image.bits()`, `image.constBits()`, `image.scanLine(0)`
+        // and `image.constScanLine(0)` all return the same thing.
+        const auto data = reinterpret_cast<const C_t *>(image.constBits());
+        if (hwy::IsAligned(data, minL2CacheAlignment)) {
+            exec<C_t, Channels, minL2CacheAlignment>(image, radiusX, radiusY);
+        } else if (hwy::IsAligned(data, minL1CacheAlignment)) {
+            exec<C_t, Channels, minL1CacheAlignment>(image, radiusX, radiusY);
+        } else if (hwy::IsAligned(data, formatAlignment)) {
+            exec<C_t, Channels, formatAlignment>(image, radiusX, radiusY);
+        } else {
+            exec<C_t, Channels, minAlignment>(image, radiusX, radiusY);
+        }
+    };
+    const auto pixelFormat = image.pixelFormat();
+    const auto channelCount = pixelFormat.channelCount();
+    const auto bytesPerChannel = (pixelFormat.bitsPerPixel() / channelCount) >> 3;
+    auto execChannelCount = [&]<ChannelType C_t>() {
+        // We only support 1 or 4 channels right now since Alpha8
+        // and common RGB formats have 1 and 4 channels.
+        if (channelCount == 1) {
+            execAlignment.operator()<C_t, 1, alignof(C_t) * 1>();
+        } else if (channelCount == 4) {
+            execAlignment.operator()<C_t, 4, alignof(C_t) * 4>();
+        }
+    };
+    if (bytesPerChannel == sizeof(uint8_t)) {
+        execChannelCount.operator()<uint8_t>();
+    } else if (bytesPerChannel == sizeof(uint16_t)) {
+        execChannelCount.operator()<uint16_t>();
+    }
+    // No support for floats or 32-bit (or higher) integer per channel formats.
 }
 
 } // namespace StackBlur
