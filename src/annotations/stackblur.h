@@ -1,17 +1,11 @@
-// SPDX-FileCopyrightText: 2006 Zack Rusin <zack@kde.org>
-// SPDX-FileCopyrightText: 2006-2007, 2008 Fredrik Höglund <fredrik@kde.org>
-//
-// The stack blur algorithm was invented by Mario Klingemann <mario@quasimondo.com>
-//
-// This implementation is based on the version in Anti-Grain Geometry Version 2.4,
-// SPDX-FileCopyrightText: 2002-2005 Maxim Shemanarev (http://www.antigrain.com)
+// SPDX-FileCopyrightText: 2010 Mario Klingemann <mario@quasimondo.com>
+// SPDX-FileCopyrightText: 2026 Noah Davis <noahadvs@gmail.com>
 //
 // SPDX-License-Identifier: BSD-2-Clause
 
-class QImage;
-class QSize;
+#include <QImage>
 
 namespace StackBlur
 {
-void blur(QImage &image, const QSize &kernelSize);
+void blur(QImage &image, int radiusX, int radiusY);
 }

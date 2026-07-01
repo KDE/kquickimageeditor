@@ -29,7 +29,7 @@ void StackBlurTest::benchmarkStackBlur()
     QVERIFY(!img.isNull());
 
     QBENCHMARK {
-        StackBlur::blur(img, {121, 121});
+        StackBlur::blur(img, 60, 60);
         QVERIFY(!img.isNull());
     }
 }

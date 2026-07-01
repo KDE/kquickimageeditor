@@ -143,16 +143,13 @@ QImage Traits::ImageEffects::Blur::image(const std::function<QImage()> &getImage
         if (m_backingStoreCache.isNull()) {
             return m_backingStoreCache;
         }
-        // Below this, the effect is nearly invisible.
-        static const qreal min = 0.5;
-        // Above this, glitches with color splotches happen.
-        static const qreal max = 60;
+        static constexpr auto min = 1;
+        static constexpr auto max = 254;
         // Scales with DPR to keep the effect looking similar for different image DPRs.
         const qreal dynamicMin = 1 * dpr;
         const qreal dynamicMax = 16 * dpr;
-        const qreal sigma = std::clamp(m_strength * (dynamicMax - dynamicMin) + dynamicMin, min, max) * 6;
-        const int kernelSize = (int)std::round(sigma + 1) | 1;
-        StackBlur::blur(m_backingStoreCache, {kernelSize, kernelSize});
+        const auto radius = qRound(Utils::clamp(m_strength * (dynamicMax - dynamicMin) + dynamicMin, min, max));
+        StackBlur::blur(m_backingStoreCache, radius, radius);
         m_backingStoreCache.setDevicePixelRatio(dpr);
     }
     QRect copyRect = Utils::rectScaled(rect, m_backingStoreCache.devicePixelRatio()).toAlignedRect();

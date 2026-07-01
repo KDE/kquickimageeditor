@@ -34,14 +34,12 @@ static unsigned char const shgTable[255] = {
     24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
     24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24};
 
-void StackBlur::blur(QImage &image, const QSize &kernelSize)
+void StackBlur::blur(QImage &image, int radiusX, int radiusY)
 {
-    if (kernelSize.width() == 1 && kernelSize.height() == 1) {
+    if (radiusX < 1 && radiusY < 1) {
         return;
     }
 
-    const int radiusX = kernelSize.width() / 2;
-    const int radiusY = kernelSize.height() / 2;
     const int w = image.width();
     const int h = image.height();
 

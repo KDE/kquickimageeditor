@@ -241,10 +241,9 @@ public:
             p.drawText(geometryTrait->path.boundingRect(), textTrait->textFlags(), textTrait->text());
         }
         p.end();
-        const qreal sigma = Traits::Shadow::radius * devicePixelRatio * 6;
-        const int kernelSize = (int)std::round(sigma + 1) | 1;
+        const int radius = qRound(Traits::Shadow::radius * devicePixelRatio);
         // Do this before converting to Alpha8 because stackBlur gets distorted with Alpha8.
-        StackBlur::blur(shadow, {kernelSize, kernelSize});
+        StackBlur::blur(shadow, radius, radius);
         // We only want black shadows with opacity, so we only need black and 8 bits of alpha.
         // If we don't do this, color emojis won't have black semi-transparent shadows.
         shadow.convertTo(QImage::Format_Alpha8);
