@@ -8,8 +8,8 @@
 #include <QImage>
 #include <QtConcurrent/QtConcurrentMap>
 
-// Includes basic helper macros, typedefs, concepts and functions
-#include <hwy/base.h>
+#include <hwy/aligned_allocator.h>
+#include <hwy/base.h> // basic helper macros, typedefs, concepts and functions
 
 using namespace StackBlur;
 
@@ -97,6 +97,48 @@ inline void maybeBlockingMap(const auto &tasks, auto function)
     }
     QtConcurrent::blockingMap(tasks, function);
 }
+
+// Metadata for threaded blurring
+template<ChannelType C_t, size_t Channels, size_t Alignment>
+    requires ChannelCount<Channels> && IsPow2<Alignment>
+struct BlurTask {
+    using Channel_t = C_t;
+    using Pixel_t = hwy::UnsignedFromSize<sizeof(Channel_t) * Channels>; // pixel type
+    static constexpr auto channels = Channels;
+    static constexpr auto alignment = Alignment;
+    Channel_t *data = nullptr;
+    size_t stride = 0;
+    Px width = 0;
+    Px radius = 0;
+    Px startRow = 0;
+    Px endRow = 0;
+};
+
+template<typename T>
+concept BlurTaskType = std::is_same_v<T, BlurTask<typename T::Channel_t, T::channels, T::alignment>>;
+
+// Metadata for threaded transposing
+template<ChannelType C_t, size_t Channels, size_t Alignment>
+    requires ChannelCount<Channels> && IsPow2<Alignment>
+struct TransposeTask {
+    using Channel_t = C_t;
+    using Pixel_t = hwy::UnsignedFromSize<sizeof(Channel_t) * Channels>; // pixel type
+    static constexpr auto channels = Channels;
+    static constexpr auto alignment = Alignment;
+    const Channel_t *srcData = nullptr;
+    Channel_t *dstData = nullptr;
+    size_t srcStride = 0;
+    size_t dstStride = 0;
+    Px width = 0; // Width of the source matrix
+    Px height = 0; // Height of the source matrix
+    Px startTileY = 0;
+    Px endTileY = 0;
+    Px tileWidth = 0;
+    Px tileHeight = 0;
+};
+
+template<typename T>
+concept TransposeTaskType = std::is_same_v<T, TransposeTask<typename T::Channel_t, T::channels, T::alignment>>;
 
 template<typename MathType>
 constexpr MathType radiusMultiplier(Px radius)
@@ -248,6 +290,181 @@ HWY_ATTR HWY_API void storeVecToPtr(FromVec from, InterTag inter, ToTag to, hn::
         hn::StoreU(hn::DemoteTo(to, hn::ConvertTo(inter, from)), to, ptr);
     }
 };
+
+/*
+Stack blur: Row major pass, meaning `for (y…) {for (x…) {…}}`.
+Images are technically 1D dynamic arrays with metadata like stride and height
+to help you interpret them in 2D. The X axis runs directly along the 1D array
+and the Y axis requires a stride multiplier to get to the next Y position up
+or down. Since the outer loop is for Y and the inner loop is for X, this
+strides less and accesses sequential data more often, which is more cache
+friendly. However, you have O(kernelSize) active states to manage.
+*/
+template<BlurTaskType BlurTask>
+// HWY_FLATTEN tells the compiler to inline functions used by this function
+HWY_ATTR HWY_FLATTEN void blurRowWorker(const BlurTask &task)
+{
+    static constexpr auto channels = BlurTask::channels;
+    static constexpr auto alignment = BlurTask::alignment;
+
+    using C_t = typename BlurTask::Channel_t; // channel type
+    using M_t = hwy::float32_t; // math type;
+    using I_t = hwy::MakeSigned<M_t>; // intermediary type
+    static_assert(sizeof(hwy::MakeWide<C_t>) <= sizeof(M_t),
+                  "The math type should be large enough that it won't overflow when doing arithmetic with channels.");
+    // Rebind makes a similar tag with a different type and the same number of lanes
+    using MTag = hn::FixedTag<M_t, channels>; // math tag type
+    using CTag = hn::Rebind<C_t, MTag>; // channel tag type
+    using ITag = hn::Rebind<I_t, MTag>; // intermediary tag type
+    // Highway can't go directly from uint8/uint16 to float32, so we need to
+    // convert to the intermediary type first.
+    // We have separate asserts for each condition because static_assert errors
+    // can look vague when you put too many tests in one static_assert.
+    // We could put all these asserts in a test file, but I think it's good to
+    // verify our assumptions where we are making them. If it's tucked away in
+    // some test file, they won't be as effective for giving the reader context
+    // for how the code should work.
+    static_assert(requires { hn::PromoteTo(ITag(), hn::Vec<CTag>()); }, "Ensure we can promote from channel to intermediary type");
+    static_assert(requires { hn::DemoteTo(CTag(), hn::Vec<ITag>()); }, "Ensure we can demote from intermediary to channel type");
+    static_assert(requires { hn::ConvertTo(MTag(), hn::Vec<ITag>()); }, "Ensure we can convert from intermediary to math type");
+    static_assert(requires { hn::ConvertTo(ITag(), hn::Vec<MTag>()); }, "Ensure we can convert from math to intermediary type");
+    // Vectors are what actually hold data, but they don't have any members.
+    // They don't even have a size until you zero them or assign something.
+    // You have to use Highway's APIs to do anything with them.
+    using MVec = hn::Vec<MTag>; // math vector type
+
+    // Tags don't have data, Highway just uses them to pass type info.
+    MTag mtag;
+    ITag itag;
+    CTag ctag;
+
+    const Px width = task.width;
+    const Px lastX = width - 1; // last X pos index
+    const Px radius = task.radius;
+    const Px kernelSize = kernelSizeFromRadius(radius);
+
+    // "End" in the same way that std::end is after the last index.
+    // "Start" in the same way that std::begin is the first index.
+    // Can be used for kernel or X pos loop.
+    const Px leftEndMidStart = std::min(radius + 1, width);
+    // These are only for the X pos loop.
+    const Px midBlockKernelMidX = leftEndMidStart + radius;
+    const Px midBlockEndRightEdgeStart = std::max(width - radius - 1, leftEndMidStart);
+
+    // A whole vector of the same multiplier. It seem wasteful, but we have to
+    // do this to multiply it with another vector.
+    const auto vMultiplier = hn::Set(mtag, radiusMultiplier<M_t>(radius));
+
+    // Weights should be set like {1, 2, 3, …, radius+1, …, 3, 2, 1}
+    hwy::AlignedVector<MVec> weights(kernelSize);
+    // set left side of kernel weights
+    for (Px i = 0; i < leftEndMidStart; ++i) {
+        weights[i] = hn::Set(mtag, i + 1);
+    }
+    // set middle and right side of kernel weights
+    for (Px i = leftEndMidStart; i < kernelSize; ++i) {
+        weights[i] = hn::Set(mtag, kernelSize - i);
+    }
+
+    // A queue of pixel data used by the kernel
+    hwy::AlignedVector<MVec> stack(kernelSize);
+
+    for (Px y = task.startRow; y < task.endRow; ++y) {
+        // Inform the compiler if the pointer is aligned and restricted
+        DECL_OPTIMIZED_PTR(C_t, rowData, task.data + y * task.stride, alignment);
+
+        /*
+        The kernel is basically like this on the X axis:
+        after <- sumOut <- stackSum/X pos <- sumIn <- before
+        We move right until the end, then we repeat on the next Y position.
+        stackSum has sumOut subtracted and sumIn added on every iteration.
+        The influence of each pixel is like a quantized bell curve shape.
+        This is why stack blur looks kind of like a Gaussian (bell curve) blur.
+        */
+        auto sumIn = hn::Zero(mtag); // sum for right/incoming
+        auto stackSum = hn::Zero(mtag); // sum of middle+right-left
+        auto sumOut = hn::Zero(mtag); // sum for left/outgoing
+
+        const auto vFirst = loadPtrToVec<alignment>(ctag, itag, mtag, &rowData[0]);
+
+        // fill up left side of kernel
+        for (Px i = 0; i < leftEndMidStart; ++i) {
+            stack[i] = vFirst;
+            // MulAdd multiplies the first two args, then adds the last.
+            // Sometimes it's more optimal than Add(Mul(v0, v1), v2).
+            stackSum = hn::MulAdd(vFirst, weights[i], stackSum);
+            sumOut = hn::Add(sumOut, vFirst);
+        }
+        // fill up middle and right side of kernel
+        for (Px i = leftEndMidStart; i < kernelSize; ++i) {
+            const Px nextX = std::min(i - radius, lastX); // starts at 1
+            const auto vNext = loadPtrToVec<alignment>(ctag, itag, mtag, &rowData[nextX * channels]);
+            stack[i] = vNext;
+            stackSum = hn::MulAdd(vNext, weights[i], stackSum);
+            sumIn = hn::Add(sumIn, vNext);
+        }
+
+        // We split the left, middle and right sections of X positions to reduce
+        // the amount of branching caused by bounds checking on the X axis.
+        enum Sections : uint8_t {
+            LeftEdge,
+            MiddleBlock,
+            RightEdge,
+        };
+        auto forX = [&]<Sections Section>(Px kernelMidX, Px startX, Px endX) HWY_ATTR HWY_FLATTEN {
+            // We need to re-declare every time to ensure we get our restriction
+            // and alignment back.
+            DECL_OPTIMIZED_PTR(C_t, row, rowData, alignment);
+            for (Px x = startX; x < endX; ++x) {
+                const auto blurred = hn::Mul(stackSum, vMultiplier);
+                storeVecToPtr<alignment>(blurred, itag, ctag, &row[x * channels]);
+                stackSum = hn::Sub(stackSum, sumOut);
+                // Outgoing data kernel index.
+                // The modulo lets us loop through the kernel.
+                const Px outKI = (kernelMidX - radius + kernelSize) % kernelSize;
+                sumOut = hn::Sub(sumOut, stack[outKI]);
+                // Next middle of kernel
+                if constexpr (Section == LeftEdge) {
+                    kernelMidX = std::min(kernelMidX + 1, lastX);
+                } else if constexpr (Section == MiddleBlock) {
+                    ++kernelMidX;
+                }
+                const auto vNextKMid = loadPtrToVec<alignment>(ctag, itag, mtag, &row[kernelMidX * channels]);
+                stack[outKI] = vNextKMid; // outgoing is replaced by next
+                sumIn = hn::Add(sumIn, vNextKMid);
+                stackSum = hn::Add(stackSum, sumIn);
+                const auto vCurrentKMid = stack[kernelMidX % kernelSize];
+                sumOut = hn::Add(sumOut, vCurrentKMid);
+                sumIn = hn::Sub(sumIn, vCurrentKMid);
+            }
+        };
+        forX.template operator()<LeftEdge>(radius, 0, leftEndMidStart);
+        forX.template operator()<MiddleBlock>(midBlockKernelMidX, leftEndMidStart, midBlockEndRightEdgeStart);
+        forX.template operator()<RightEdge>(lastX, midBlockEndRightEdgeStart, width);
+    }
+}
+
+// Copy the source image rotated 90 degrees
+template<TransposeTaskType TransposeTask>
+HWY_ATTR HWY_FLATTEN void transposeWorker(const TransposeTask &task)
+{
+    static constexpr auto channels = TransposeTask::channels;
+    static constexpr auto alignment = TransposeTask::alignment;
+    using P_t = typename TransposeTask::Pixel_t;
+    for (Px y = task.startTileY; y < task.endTileY; y += task.tileHeight) {
+        const Px yMax = std::min(y + task.tileHeight, task.height);
+        for (Px x = 0; x < task.width; x += task.tileWidth) {
+            const Px xMax = std::min(x + task.tileWidth, task.width);
+            for (Px ty = y; ty < yMax; ++ty) {
+                for (Px tx = x; tx < xMax; ++tx) {
+                    DECL_OPTIMIZED_PTR(const P_t, srcData, task.srcData + ty * task.srcStride + tx * channels, alignment);
+                    DECL_OPTIMIZED_PTR(P_t, dstData, task.dstData + tx * task.dstStride + ty * channels, alignment);
+                    *dstData = *srcData;
+                }
+            }
+        }
+    }
+}
 
 } // namespace StackBlur::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE(); // Required to finish the SIMD code setup
