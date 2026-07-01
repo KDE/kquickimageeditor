@@ -157,6 +157,25 @@ constexpr MathType radiusMultiplier(Px radius)
 #define GET_OPTIMIZED_PTR(UnderlyingType, ptr, align) (UnderlyingType * HWY_RESTRICT)(HWY_ASSUME_ALIGNED(ptr, align))
 #define DECL_OPTIMIZED_PTR(UnderlyingType, varName, ptr, align) UnderlyingType *HWY_RESTRICT varName = GET_OPTIMIZED_PTR(UnderlyingType, ptr, align)
 
+// Used to enable/disable features specifically for the benchmark
+#ifdef STACKBLURBENCHMARK
+static constexpr bool s_isBenchmarkBuild = true;
+#else
+static constexpr bool s_isBenchmarkBuild = false;
+#endif
+
+// Environment variable purely for use with the benchmark. Not for apps.
+static const Px s_envTileSize = []() -> Px {
+    if constexpr (!s_isBenchmarkBuild) {
+        return 0;
+    }
+    auto tileSize = qEnvironmentVariableIntValue("STACKBLURBENCHMARK_TILESIZE");
+    // 512 to 4096 are really only for benchmarking.
+    // They're pretty bad for performance.
+    // Round to the next power of 2 down.
+    return std::bit_floor(static_cast<size_t>(std::clamp(tileSize, 0, 4096)));
+}();
+
 } // namespace StackBlur
 #endif // HELPERS_DEFINED
 
@@ -523,6 +542,11 @@ void exec(QImage &image, Px radiusX, Px radiusY)
     anything.
     */
     const Px tileSize = [w] {
+        if constexpr (s_isBenchmarkBuild) {
+            if (s_envTileSize) {
+                return s_envTileSize;
+            }
+        }
         // Above somewhere around this size, 64 becomes slower than 32.
         // We use width for the threshold because height is split by threads
         // while width is not. Sometimes tall images are easier to deal with
