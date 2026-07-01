@@ -36,6 +36,7 @@ include(ECMGenerateQDoc)
 
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick Concurrent REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
+find_package(HWY 1.3.0 REQUIRED)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
 set(KQuickImageEditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor)

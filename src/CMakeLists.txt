@@ -110,6 +110,7 @@ target_link_libraries(KQuickImageEditor
     Qt6::Concurrent
     KF6::ConfigCore
     KF6::ConfigGui
+    hwy::hwy
 )
 
 target_include_directories(KQuickImageEditor PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/annotations>")
