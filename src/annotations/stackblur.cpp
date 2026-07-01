@@ -42,7 +42,8 @@ void StackBlur::blur(QImage &image, int radiusX, int radiusY)
 
     const int w = image.width();
     const int h = image.height();
-
+    radiusX = std::min({radiusX, (image.width() - 1) / 2, 254});
+    radiusY = std::min({radiusY, (image.height() - 1) / 2, 254});
     const int wm = w - 1;
     const int hm = h - 1;
 
