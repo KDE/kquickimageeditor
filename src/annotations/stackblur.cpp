@@ -47,7 +47,11 @@ void blur(QImage &image, int radiusX, int radiusY)
     if (std::find(supportedFormats.begin(), supportedFormats.end(), image.format()) == supportedFormats.end()) {
         return;
     }
-    if (radiusX < 1 && radiusY < 1) {
+    // Radius is never more than (size-1)/2 because the kernel should always
+    // have an odd size and should never be bigger than the image.
+    radiusX = std::min({radiusX, (image.width() - 1) / 2, maxRadius()});
+    radiusY = std::min({radiusY, (image.height() - 1) / 2, maxRadius()});
+    if (radiusX < minRadius() && radiusY < minRadius()) {
         return;
     }
 

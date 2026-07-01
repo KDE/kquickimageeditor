@@ -21,6 +21,51 @@ https://melatonin.dev/blog/implementing-marios-stack-blur-15-times-in-cpp
 namespace StackBlur
 {
 /**
+ * Maximum blur radius in pixels.
+ * This value is kind of arbitrary since we don't use a multiplier lookup table.
+ * It's internally helpful to limit the upper bound of what the blur might do.
+ */
+[[nodiscard]] constexpr int maxRadius()
+{
+    // Same as the max from Mario Klingemann's original implementation.
+    return 254;
+}
+
+/**
+ * Minimum usable blur radius in pixels.
+ * You can't really go lower than this or else you won't blur anything.
+ */
+[[nodiscard]] constexpr int minRadius()
+{
+    return 1;
+}
+
+/**
+ * Get the kernel size for a given blur radius.
+ */
+template<typename T>
+[[nodiscard]] constexpr int kernelSizeFromRadius(T radius)
+{
+    return radius * 2 + 1;
+}
+
+/**
+ * Maximum blur kernel size in pixels.
+ */
+[[nodiscard]] constexpr int maxKernel()
+{
+    return kernelSizeFromRadius(maxRadius());
+}
+
+/**
+ * Minimum usable blur kernel size in pixels.
+ */
+[[nodiscard]] constexpr int minKernel()
+{
+    return kernelSizeFromRadius(minRadius());
+}
+
+/**
  * Get a span of known supported QImage formats.
  * Returns a span so that the return type doesn't have to change every time we
  * update the list (vs directly returning std::array) and so that it can be
