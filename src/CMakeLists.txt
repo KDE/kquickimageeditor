@@ -107,6 +107,7 @@ target_link_libraries(KQuickImageEditor
     Qt6::Quick
     Qt6::Qml
     PRIVATE
+    Qt6::Concurrent
     KF6::ConfigCore
     KF6::ConfigGui
 )

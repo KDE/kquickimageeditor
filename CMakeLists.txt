@@ -34,7 +34,7 @@ include(ECMGenerateHeaders)
 include(ECMQmlModule)
 include(ECMGenerateQDoc)
 
-find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick REQUIRED)
+find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick Concurrent REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
