@@ -7,6 +7,11 @@ cmake_minimum_required(VERSION 3.16)
 set(REQUIRED_KF_VERSION 6.13.0)
 set(REQUIRED_QT_VERSION 6.8.0)
 
+# Overriding this with `-DREQUIRED_HWY_VERSION=…` is not officially supported.
+# If your distro only provides older versions, you can try to override this and
+# see if the project still works fine.
+set(REQUIRED_HWY_VERSION 1.3.0)
+
 project(KQuickImageEditor LANGUAGES CXX VERSION 0.6.2)
 
 set(CMAKE_C_STANDARD 99)
@@ -36,7 +41,7 @@ include(ECMGenerateQDoc)
 
 find_package(Qt6 ${REQUIRED_QT_VERSION} COMPONENTS Core Qml Quick Concurrent REQUIRED)
 find_package(KF6 ${REQUIRED_KF_VERSION} REQUIRED Config)
-find_package(HWY 1.3.0 REQUIRED)
+find_package(HWY ${REQUIRED_HWY_VERSION} REQUIRED)
 
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KQuickImageEditor")
 set(KQuickImageEditor_INSTALL_INCLUDEDIR ${KDE_INSTALL_INCLUDEDIR}/KQuickImageEditor)
