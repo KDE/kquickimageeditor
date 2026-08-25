@@ -171,11 +171,13 @@ QImage AnnotationDocument::canvasBaseImage() const
 
 void AnnotationDocument::setBaseImage(const QImage &image)
 {
-    if (d->baseImage.cacheKey() == image.cacheKey()) {
+    if (d->originalCacheKey == image.cacheKey()) {
         return;
     }
     d->baseImage = image;
     d->setCanvas(deviceIndependentRect(d->baseImage), d->baseImage.devicePixelRatio(), QTransform{});
+    d->originalCacheKey = image.cacheKey();
+    d->baseImage.convertTo(Utils::formatForQPainter(image.format()));
 }
 
 void AnnotationDocument::setBaseImage(const QString &path)

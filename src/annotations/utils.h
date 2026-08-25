@@ -354,4 +354,22 @@ public:
         matrix.scale(rotatedScale.x(), rotatedScale.y());
         return {{u"edges"_s, edges}, {u"matrix"_s, matrix}};
     }
+
+    static inline QImage::Format formatForQPainter(QImage::Format format)
+    {
+        const auto pf = QImage::toPixelFormat(format);
+        if (pf.colorModel() == QPixelFormat::Indexed) {
+            return QImage::Format_RGB32;
+        }
+        const auto maxChannelSize = std::max({pf.redSize(), pf.greenSize(), pf.blueSize(), pf.blackSize(), pf.alphaSize()});
+        const auto usesAlpha = pf.alphaUsage() == QPixelFormat::UsesAlpha;
+        if (maxChannelSize > 8) {
+            return usesAlpha ? QImage::Format_RGBA64_Premultiplied : QImage::Format_RGBX64;
+        }
+        const auto alphaAtEnd = pf.alphaPosition() == QPixelFormat::AtEnd;
+        if (alphaAtEnd) {
+            return usesAlpha ? QImage::Format_RGBA8888_Premultiplied : QImage::Format_RGBX8888;
+        }
+        return usesAlpha ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32;
+    }
 };

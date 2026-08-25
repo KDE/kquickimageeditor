@@ -54,6 +54,9 @@ public:
     QMatrix4x4 renderTransform;
     // transform for processing annotation input
     QMatrix4x4 inputTransform;
+
+    // stores separately so we can compare the original base image to new base images
+    qint64 originalCacheKey = 0;
     // The base screenshot image
     QImage baseImage;
     // A cache for a cropped or transformed version of the base image.
