@@ -14,10 +14,19 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QTimer>
 #include <memory>
 #include <source_location>
 
 using namespace Qt::StringLiterals;
+
+// used to compress repaint logic
+static auto s_repaintTimer = [] -> std::unique_ptr<QTimer> {
+    auto timer = std::make_unique<QTimer>();
+    timer->setSingleShot(true);
+    timer->setInterval(0);
+    return timer;
+}();
 
 inline QColorSpace imageColorSpace(const QImage &image)
 {
@@ -53,10 +62,57 @@ inline QRectF deviceIndependentRect(const QImage &image)
     return {{0, 0}, image.deviceIndependentSize()};
 }
 
+// not a lambda so that it's easier to find in profilers
+inline void updateImages(AnnotationDocument *q, AnnotationDocumentPrivate *d) {
+    using RepaintType = AnnotationDocument::RepaintType;
+    if (d->repaintTypes.testFlag(RepaintType::BaseImage)) {
+        const auto baseCanvasRect = deviceIndependentRect(d->baseImage);
+        const auto baseIntersection = d->invertedTransform.mapRect(d->canvasRect).intersected(baseCanvasRect);
+        // check to avoid unnecessary deep copies
+        if (baseIntersection != baseCanvasRect) {
+            const auto cacheRect = Utils::rectScaled(baseIntersection, d->imageDpr).toRect();
+            d->baseImageCache = d->baseImage.copy(cacheRect);
+        } else {
+            d->baseImageCache = d->baseImage;
+        }
+        if (!d->transform.isIdentity()) {
+            d->baseImageCache = d->baseImageCache.transformed(d->transform.toTransform(), Qt::SmoothTransformation);
+        }
+        // No-op if same colorspace. Ensures the correct colorspace is always used.
+        d->baseImageCache.setColorSpace(d->colorSpace.isValidTarget() ? d->colorSpace : imageColorSpace(d->baseImage));
+        // Some types of annotations like Highlight, Blur and Pixelate will have
+        // to be repainted when the base image cache changes.
+        d->annotationsImage = defaultImage(d->imageSize, d->imageDpr);
+    }
+    if (d->repaintTypes.testFlag(RepaintType::Annotations)) {
+        if (d->annotationsImage.isNull()) {
+            d->annotationsImage = defaultImage(d->imageSize, d->imageDpr);
+        }
+        QPainter painter(&d->annotationsImage);
+        painter.setTransform(d->renderTransform.toTransform());
+        // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
+        painter.setClipRegion(d->repaintRegion);
+        // Clear mode is needed to actually clear the region.
+        painter.setCompositionMode(QPainter::CompositionMode_Clear);
+        // The painter is clipped to the region, so we can just use eraseRect.
+        painter.eraseRect(d->repaintRegion.boundingRect());
+        // Restore default composition mode.
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        d->paintAnnotations(&painter, d->repaintRegion);
+        painter.end();
+        d->repaintRegion = {};
+    }
+    Q_EMIT q->repaintNeeded(d->repaintTypes);
+    d->repaintTypes = {};
+}
+
 AnnotationDocument::AnnotationDocument(QObject *parent)
     : QObject(parent)
     , d(std::make_unique<AnnotationDocumentPrivate>(this))
 {
+    connect(s_repaintTimer.get(), &QTimer::timeout, this, [this] {
+        updateImages(this, d.get());
+    });
 }
 
 AnnotationDocument::~AnnotationDocument() = default;
@@ -141,25 +197,6 @@ void AnnotationDocumentPrivate::setCanvas(const QRectF &rect, qreal dpr, const s
         inputTransform.translate(canvasRect.x(), canvasRect.y());
         Q_EMIT q->transformChanged();
     }
-    // Reset image cache
-    baseImageCache = [this]() -> QImage {
-        if (baseImage.isNull()) {
-            return {};
-        }
-        auto imageRect = deviceIndependentRect(baseImage);
-        const auto untransformedCanvasRect = invertedTransform.mapRect(canvasRect);
-        auto image = baseImage;
-        if (!untransformedCanvasRect.contains(imageRect)) {
-            imageRect = Utils::rectScaled(untransformedCanvasRect.intersected(imageRect), imageDpr);
-            image = image.copy(imageRect.toRect());
-        }
-        if (transform.isIdentity()) {
-            return image;
-        }
-        return image.transformed(transform.toTransform(), Qt::SmoothTransformation);
-    }();
-    annotationsImage = defaultImage(imageSize, imageDpr);
-    annotationsImage = q->annotationsImage();
     // Unconditionally repaint the whole canvas area
     setRepaintRegion();
 }
@@ -181,9 +218,6 @@ QImage AnnotationDocument::baseImage() const
 
 QImage AnnotationDocument::canvasBaseImage() const
 {
-    if (d->baseImage.isNull() || d->baseImageCache.isNull()) {
-        return d->baseImage;
-    }
     return d->baseImageCache;
 }
 
@@ -466,24 +500,6 @@ void AnnotationDocumentPrivate::paintAnnotations(QPainter *painter, const QRegio
 
 QImage AnnotationDocument::annotationsImage() const
 {
-    if (d->annotationsImage.isNull()) {
-        return {};
-    }
-    if (!d->repaintRegion.isEmpty()) {
-        QPainter painter(&d->annotationsImage);
-        painter.setTransform(d->renderTransform.toTransform());
-        // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
-        painter.setClipRegion(d->repaintRegion);
-        // Clear mode is needed to actually clear the region.
-        painter.setCompositionMode(QPainter::CompositionMode_Clear);
-        // The painter is clipped to the region, so we can just use eraseRect.
-        painter.eraseRect(d->repaintRegion.boundingRect());
-        // Restore default composition mode.
-        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-        d->paintAnnotations(&painter, d->repaintRegion);
-        painter.end();
-        d->repaintRegion = {};
-    }
     return d->annotationsImage;
 }
 
@@ -953,21 +969,21 @@ void AnnotationDocumentPrivate::setRepaintRegion(const QRectF &rect, AnnotationD
         // No point in trying to transform or add to the region if true.
         return;
     }
-    const bool emitRepaintNeeded = repaintRegion.isEmpty() || lastRepaintTypes != types;
+    const bool emitRepaintNeeded = repaintRegion.isEmpty() || !repaintTypes.testFlags(types);
     repaintRegion += biggerRect;
-    lastRepaintTypes = types;
+    repaintTypes |= types;
     if (emitRepaintNeeded) {
-        Q_EMIT q->repaintNeeded(lastRepaintTypes);
+        s_repaintTimer->start();
     }
 }
 
 void AnnotationDocumentPrivate::setRepaintRegion(AnnotationDocument::RepaintTypes types)
 {
-    const bool emitRepaintNeeded = repaintRegion.isEmpty() || lastRepaintTypes != types;
+    const bool emitRepaintNeeded = repaintRegion.isEmpty() || !repaintTypes.testFlags(types);
     repaintRegion = invertedTransform.mapRect(canvasRect).toAlignedRect();
-    lastRepaintTypes = types;
+    repaintTypes |= types;
     if (emitRepaintNeeded) {
-        Q_EMIT q->repaintNeeded(lastRepaintTypes);
+        s_repaintTimer->start();
     }
 }
 

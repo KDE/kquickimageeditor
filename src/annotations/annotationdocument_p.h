@@ -67,7 +67,7 @@ public:
     // It is separate so that we don't need to keep repainting the image underneath.
     QImage annotationsImage;
     // The last types of things to repaint. Used to determine when to emit repaintNeeded.
-    AnnotationDocument::RepaintTypes lastRepaintTypes = AnnotationDocument::RepaintType::NoTypes;
+    AnnotationDocument::RepaintTypes repaintTypes = AnnotationDocument::RepaintType::NoTypes;
     // Where a repaint is needed. Used to determine when to repaint or emit repaintNeeded.
     // Set using untransformed document coordinates
     QRegion repaintRegion;
