@@ -33,3 +33,15 @@ add_test(NAME stackblurbenchmark_smoketest COMMAND stackblurbenchmark_bin "-iter
 # Timeout after 10 seconds in case it hangs.
 # Limit smoketest variables to small sizes to keep it fast.
 set_tests_properties(stackblurbenchmark_smoketest PROPERTIES TIMEOUT 10 ENVIRONMENT "STACKBLURBENCHMARK_RESOLUTION=min;STACKBLURBENCHMARK_RADIUS=min")
+
+add_executable(coloradjustmenttest_bin
+    stackblurtest_helpers.h
+    coloradjustmenttest.cpp
+    ../src/annotations/coloradjustment.cpp
+)
+target_include_directories(coloradjustmenttest_bin PRIVATE ../src/annotations)
+target_link_libraries(coloradjustmenttest_bin PRIVATE Qt::Test Qt::Gui)
+ecm_mark_as_test(coloradjustmenttest_bin)
+add_test(NAME coloradjustmenttest COMMAND coloradjustmenttest_bin)
+# Timeout after 10 seconds in case it hangs.
+set_tests_properties(stackblurtest PROPERTIES TIMEOUT 10)
