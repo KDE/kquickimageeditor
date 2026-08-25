@@ -115,6 +115,21 @@ target_link_libraries(KQuickImageEditor
     hwy::hwy
 )
 
+# The resource name (2nd argument) for each qt6_add_shaders call must be unique.
+qt6_add_shaders(KQuickImageEditor "shaders"
+    BATCHABLE
+    PRECOMPILE
+    OPTIMIZED
+    PREFIX
+        "/qt/qml/org/kde/kquickimageeditor/private/"
+    FILES
+        annotations/private/coloradjustment.vert
+        annotations/private/coloradjustment.frag
+    OUTPUTS
+        coloradjustment.vert.qsb
+        coloradjustment.frag.qsb
+)
+
 target_include_directories(KQuickImageEditor PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/annotations>")
 target_include_directories(KQuickImageEditor INTERFACE "$<INSTALL_INTERFACE:${KQuickImageEditor_INSTALL_INCLUDEDIR}>")
 
