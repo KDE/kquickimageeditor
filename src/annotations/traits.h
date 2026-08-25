@@ -5,6 +5,8 @@
 #pragma once
 
 #include <QBrush>
+#include <QColorSpace>
+#include <QColorTransform>
 #include <QFont>
 #include <QHash>
 #include <QMatrix4x4>
@@ -37,6 +39,7 @@ namespace Meta
 struct Delete;
 struct Crop;
 struct Transform;
+struct ColorAdjustment;
 }
 
 using OptTuple = std::tuple<std::optional<Geometry>,
@@ -50,7 +53,8 @@ using OptTuple = std::tuple<std::optional<Geometry>,
                             std::optional<Shadow>,
                             std::optional<Meta::Delete>,
                             std::optional<Meta::Crop>,
-                            std::optional<Meta::Transform>>;
+                            std::optional<Meta::Transform>,
+                            std::optional<Meta::ColorAdjustment>>;
 
 struct Translation {
     // QTransform: m31
@@ -324,7 +328,7 @@ struct Crop {
 struct Transform {
     COMMON_TRAIT_DEFS(Transform)
     QMatrix4x4 matrix;
-    operator QTransform () const
+    operator QTransform() const
     {
         return matrix.toTransform();
     }
@@ -332,6 +336,14 @@ struct Transform {
     {
         return matrix;
     }
+};
+struct ColorAdjustment {
+    COMMON_TRAIT_DEFS(ColorAdjustment)
+    // Matrix for linear RGB color transformations.
+    // The row order is red, green, blue, projection.
+    QMatrix4x4 matrix;
+    // A gamma adjustment to be applied in a linear colorspace
+    float gamma = 1.0f;
 };
 }
 
@@ -359,6 +371,7 @@ DEBUG_TRAIT_DEF(Traits::Shadow)
 DEBUG_TRAIT_DEF(Traits::Meta::Delete)
 DEBUG_TRAIT_DEF(Traits::Meta::Crop)
 DEBUG_TRAIT_DEF(Traits::Meta::Transform)
+DEBUG_TRAIT_DEF(Traits::Meta::ColorAdjustment)
 
 DEBUG_DEF(Traits::ImageEffects::Blur)
 DEBUG_DEF(Traits::ImageEffects::Pixelate)
