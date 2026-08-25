@@ -407,4 +407,147 @@ public:
         return Utils::fuzzyIsNullF32(std::max(v1, v2) - std::min(v1, v2));
     }
 
+    // QQuickMatrix4x4 does not have isIdentity
+    Q_INVOKABLE static inline bool isIdentityMatrix4x4(const QMatrix4x4 &matrix)
+    {
+        return matrix.isIdentity();
+    }
+
+    /*!
+    \qmlmethod matrix4x4 Utils::brightnessMatrix(real brightness)
+
+    \brief Get a matrix4x4 with a brightness transformation.
+
+    If you have an existing matrix you want to modify, multiply it with this
+    matrix. The order in which you multiply matters.
+
+    In QML, \c{brightnessMatrix.times(otherMatrix)} will apply an absolute
+    brightness change to the other matrix, except it will still be multiplied
+    by the other matrix's global divisor (QML: \c {matrix.m44}, C++: \c{matrix(3,3)}).
+    \c{otherMatrix.times(brightnessMatrix)} will apply a brightness change that
+    is affected by the other matrix's existing scale, rotation and perspective
+    operations, but not the other matrix's global divisor. Read the C++ code
+    of \c{QMatrix4x4 operator*(const QMatrix4x4& m1, const QMatrix4x4& m2)}
+    to understand all the details. In QML, \c{m1.times(m2)} uses matrices in
+    the same order as \c{QMatrix4x4 operator*(m1, m2)}.
+
+    \a brightness An absolute brightness offset. You typically wouldn't use
+    values outside of [-1,1] so that you don't stray too far outside the range
+    of valid color values. However, there is nothing stopping you from doing so.
+    Brightness is not clamped because the brightness change may be combined with
+    scale, rotation or perspective operations. Either way, the effect applying
+    the brightness change will need to clamp color channel values unless you are
+    using a floating point image format where values outside of [0,1] are valid.
+    Values within [-1e-5, 1e-5] and non-finite values will do nothing.
+    */
+    Q_INVOKABLE static inline QMatrix4x4 brightnessMatrix(qreal brightness)
+    {
+        if (!std::isfinite(brightness) || Utils::fuzzyIsNullF32(brightness)) {
+            return {};
+        }
+        QMatrix4x4 m;
+        // Will be affected by existing scale/rotation/perspective operations
+        m.translate(brightness, brightness, brightness);
+        return m;
+    }
+
+    /*!
+    \qmlmethod matrix4x4 Utils::contrastMatrix(real contrast)
+
+    \brief Get a matrix4x4 with a contrast transformation.
+
+    If you have an existing matrix you want to modify, multiply it with this
+    matrix. The order in which you multiply matters in much the same way as
+    \l{Utils::brightnessMatrix}{brightnessMatrix} for translations
+    caused by the contrast change. Either way, the scales of this matrix and
+    another matrix will be multiplied with each other. If there are rotation
+    and perspective operations in the other matrix, those will affect the scales
+    from this matrix. Read the C++ code of \c{QMatrix4x4 operator*(m1, m2)}
+    to understand all the details.
+
+    \a{contrast} A multiplier and offset that changes contrast.
+    A typical value range might be (0,2] or (0,4], but there is nothing stopping
+    you from using values outside that range. Values greater than 1 increase
+    contrast. Values less than 1 decrease contrast. Values less than 0 will give
+    the same result as 0. Values within 1±1e-5 and non-finite values will do
+    nothing. Values greater than 1 may technically be able to change contrast up
+    to the maximum value of a 32-bit float, but you probably won't notice any
+    difference above 55.5.
+    */
+    Q_INVOKABLE static inline QMatrix4x4 contrastMatrix(qreal contrast)
+    {
+        if (!std::isfinite(contrast) || Utils::fuzzyCompareF32(contrast, 1.0)) {
+            return {};
+        }
+        // Prevent actually going to 0 so that the matrix can be inverted.
+        contrast = std::copysign(std::max(std::abs(contrast), Utils::fuzzyEpsilonF32()), contrast);
+        float offset = (1.0f - contrast) * 0.5f;
+        // Will be affected by existing scale/rotation/perspective operations,
+        // so translate before scaling.
+        QMatrix4x4 m;
+        m.translate(offset, offset, offset);
+        m.scale(contrast);
+        return m;
+    }
+
+    /*!
+    \qmlmethod matrix4x4 Utils::saturationMatrix(real saturation)
+
+    \brief Get a matrix4x4 with a saturation transformation.
+
+    If you have an existing matrix you want to modify, multiply it with this
+    matrix. The order in which you multiply matters in much the same way as
+    \l{Utils::contrastMatrix}{contrastMatrix}. Read the C++ code
+    of \c{QMatrix4x4 operator*(m1, m2)} to understand all the details.
+
+    \a{saturation} A multiplier that changes saturation.
+    A typical value range might be (0,2] or (0,4], but there is nothing stopping
+    you from using values outside that range. Values greater than 1 increase
+    saturation. Values less than 1 decrease saturation. Values less than 0 will
+    invert the colors and apply saturation to the inverted colors. Values within
+    1±1e-5 and non-finite values will do nothing. Values greater than 1 may
+    technically be able to change saturation up to the maximum value of a 32-bit
+    float, but you probably won't notice any difference above 50.
+    */
+    Q_INVOKABLE static inline QMatrix4x4 saturationMatrix(qreal saturation)
+    {
+        if (!std::isfinite(saturation) || Utils::fuzzyCompareF32(saturation, 1.0)) {
+            return {};
+        }
+        // Prevent actually going to 0 so that the matrix can be inverted.
+        saturation = std::copysign(std::max(std::abs(saturation), Utils::fuzzyEpsilonF32()), saturation);
+        QVector3D eye(0, 0, 0);
+        QVector3D center(1, 1, 1);
+        // At least one of `up` needs to be 1.
+        // At least one other of `up` needs to be 0.
+        QVector3D up(0, 0, 1);
+        QMatrix4x4 lookAtMat;
+        // Look along the grayscale axis.
+        lookAtMat.lookAt(eye, center, up);
+        // If you don't transpose or invert, the colors will be wrong.
+        QMatrix4x4 m = lookAtMat.transposed();
+        // Scale grayness.
+        m.scale(saturation, saturation, 1);
+        // Go back to RGB.
+        return m * lookAtMat;
+    }
+
+    /*!
+    \qmlmethod matrix4x4 Utils::relativeLuminanceMatrix(real rY, real gY, real bY)
+
+    \brief Get a matrix4x4 with relative luminance weights.
+    This may be necessary for some effects like saturation.
+
+    If you have an existing matrix you want to modify, add it to this matrix.
+    The order in which you add does not matter.
+    */
+    Q_INVOKABLE static inline QMatrix4x4 relativeLuminanceMatrix(qreal rY, qreal gY, qreal bY)
+    {
+        // clang-format off
+        return QMatrix4x4(rY, gY, bY, 0,
+                          rY, gY, bY, 0,
+                          rY, gY, bY, 0,
+                           0,  0,  0, 1);
+        // clang-format on
+    }
 };
