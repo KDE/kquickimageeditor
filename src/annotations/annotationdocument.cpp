@@ -5,6 +5,7 @@
  */
 
 #include "annotationdocument_p.h"
+#include "coloradjustment.h"
 #include "utils.h"
 
 #include <QGuiApplication>
@@ -80,6 +81,7 @@ inline void updateImages(AnnotationDocument *q, AnnotationDocumentPrivate *d) {
         }
         // No-op if same colorspace. Ensures the correct colorspace is always used.
         d->baseImageCache.setColorSpace(d->colorSpace.isValidTarget() ? d->colorSpace : imageColorSpace(d->baseImage));
+        ColorAdjustment::adjust(d->baseImageCache, d->colorMatrix, d->gammaAdjustment);
         // Some types of annotations like Highlight, Blur and Pixelate will have
         // to be repainted when the base image cache changes.
         d->annotationsImage = defaultImage(d->imageSize, d->imageDpr);
@@ -232,6 +234,8 @@ void AnnotationDocument::setBaseImage(const QImage &image)
     const auto baseCS = imageColorSpace(image);
     d->baseImage.setColorSpace(baseCS);
     d->setCanvas(deviceIndependentRect(image), image.devicePixelRatio(), QTransform{});
+    d->colorMatrix = {};
+    d->gammaAdjustment = 1.0f;
     d->colorSpace = baseCS;
 }
 
@@ -329,6 +333,80 @@ void AnnotationDocument::applyTransform(const QMatrix4x4 &matrix)
     }
     d->addItem(newItem);
     d->setTransform(transform);
+}
+
+void AnnotationDocumentPrivate::setColorAdjustment(const QMatrix4x4 &matrix, float gamma)
+{
+    const bool changeColorMatrix = !matrix.isIdentity();
+    const bool changeGamma = ColorAdjustment::isValidGammaAdjustment(gamma);
+    if (!changeColorMatrix && !changeGamma) {
+        return;
+    }
+    // NOTE: the order of arguments for operator* is important.
+    // With a different order, the wrong scale/shear would be applied to translations.
+    if (changeColorMatrix) {
+        colorMatrix = colorMatrix * matrix;
+    }
+    if (changeGamma) {
+        gammaAdjustment = gammaAdjustment * gamma;
+    }
+    // Unconditionally repaint the whole canvas area.
+    // Annotations that rely on image contents like Highlight, Blur or Pixelate
+    // Will need to be repainted.
+    setRepaintRegion();
+}
+
+void AnnotationDocument::applyColorAdjustment(const QMatrix4x4 &matrixArg, qreal gamma)
+{
+    // fix or optimize if necessary without unnecessarily copying
+    const QMatrix4x4 &matrix = [&]() -> const QMatrix4x4 & {
+        // prevent division by 0
+        if (auto row = matrixArg.row(3); (row[0] + row[1] + row[2] + row[3]) == 0) {
+            auto m = matrixArg;
+            // one absolute 32-bit float value increment more than the fuzzy 32-bit float.
+            auto minValue = [](float value) {
+                return std::copysign(Utils::fuzzyEpsilonF32() + Utils::epsilonF32(), value);
+            };
+            for (int i = 0; i < 4; ++i) {
+                if (auto value = row[i]; value != 0) {
+                    row[i] = minValue(value);
+                }
+            }
+            if ((row[0] + row[1] + row[2] + row[3]) == 0) {
+                row[3] = minValue(row[3]);
+            }
+            m.setRow(3, row);
+            qWarning() << "AnnotationDocument::applyColorAdjustment: 4th row sum is 0; clamped 4th row to" << row;
+            return std::cref(m).get();
+        }
+        if (matrixArg.flags().testFlag(QMatrix4x4::General) && matrixArg.isAffine()) {
+            auto m = matrixArg;
+            m.optimize();
+            return std::cref(m).get();
+        }
+        return matrixArg;
+    }();
+    const bool changeColorMatrix = !matrix.isIdentity();
+    const bool changeGamma = ColorAdjustment::isValidGammaAdjustment(gamma);
+    if (!changeColorMatrix && !changeGamma) {
+        return;
+    }
+    // NOTE: the order of arguments for operator* is important.
+    // With a different order, the wrong components will be applied.
+    auto newItem = std::make_shared<HistoryItem>();
+    auto &colorAdjustment = std::get<Traits::Meta::ColorAdjustment::Opt>(newItem->traits()).emplace(matrix, gamma);
+    const auto &undoList = d->history.undoList();
+    for (const auto &item : undoList | std::views::reverse) {
+        if (!item) {
+            continue;
+        }
+        if (std::get<Traits::Meta::ColorAdjustment::Opt>(item->traits()).has_value()) {
+            HistoryItem::setItemRelations(item, newItem);
+            break;
+        }
+    }
+    d->addItem(newItem);
+    d->setColorAdjustment(colorAdjustment.matrix, colorAdjustment.gamma);
 }
 
 void AnnotationDocument::clearAnnotations()
@@ -619,6 +697,9 @@ void AnnotationDocument::undo()
             d->setCanvas(deviceIndependentRect(d->baseImage), d->imageDpr);
         }
     }
+    if (auto &colorAdjustment = std::get<Traits::Meta::ColorAdjustment::Opt>(currentItem->traits())) {
+        d->setColorAdjustment(colorAdjustment->matrix.inverted(), 1.0f / colorAdjustment->gamma);
+    }
     if (currentItem == d->selectedItemWrapper->d->selectedItem.lock()) {
         if (prevItem && currentItem->hasParent() && (prevItem == currentItem->parent())) {
             d->selectedItemWrapper->d->setSelectedItem(prevItem);
@@ -659,6 +740,9 @@ void AnnotationDocument::redo()
     }
     if (std::get<Traits::Meta::Crop::Opt>(nextItem->traits()).has_value()) {
         d->setCanvas(Traits::geometryPathBounds(nextItem->traits()), d->imageDpr);
+    }
+    if (auto &colorAdjustment = std::get<Traits::Meta::ColorAdjustment::Opt>(nextItem->traits())) {
+        d->setColorAdjustment(colorAdjustment->matrix, colorAdjustment->gamma);
     }
     if (currentItem && currentItem == d->selectedItemWrapper->d->selectedItem) {
         if (nextItem == currentItem->child()) {
@@ -1009,25 +1093,25 @@ void SelectedItemWrapperPrivate::setSelectedItem(const HistoryItem::const_shared
         auto &temp = document->d->tempItem;
         temp = std::make_shared<HistoryItem>(*historyItem);
         options.setFlag(AnnotationTool::StrokeOption, //
-                          std::get<Traits::Stroke::Opt>(temp->traits()).has_value());
+                        std::get<Traits::Stroke::Opt>(temp->traits()).has_value());
 
         auto &fill = std::get<Traits::Fill::Opt>(temp->traits());
         options.setFlag(AnnotationTool::FillOption, //
-                          fill.has_value() && fill->index() == Traits::Fill::Brush);
+                        fill.has_value() && fill->index() == Traits::Fill::Brush);
         options.setFlag(AnnotationTool::StrengthOption, //
-                          fill.has_value()
-                              && (fill->index() == Traits::Fill::Blur //
-                                  || fill->index() == Traits::Fill::Pixelate));
+                        fill.has_value()
+                            && (fill->index() == Traits::Fill::Blur //
+                                || fill->index() == Traits::Fill::Pixelate));
 
         auto &text = std::get<Traits::Text::Opt>(temp->traits());
         options.setFlag(AnnotationTool::FontOption, text.has_value());
         options.setFlag(AnnotationTool::TextOption, //
-                          text && text->index() == Traits::Text::String);
+                        text && text->index() == Traits::Text::String);
         options.setFlag(AnnotationTool::NumberOption, //
-                          text && text->index() == Traits::Text::Number);
+                        text && text->index() == Traits::Text::Number);
 
         options.setFlag(AnnotationTool::ShadowOption, //
-                          std::get<Traits::Shadow::Opt>(temp->traits()).has_value());
+                        std::get<Traits::Shadow::Opt>(temp->traits()).has_value());
         transform = {};
     } else {
         reset();

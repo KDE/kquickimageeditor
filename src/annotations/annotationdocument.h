@@ -191,6 +191,21 @@ public:
     Q_INVOKABLE void applyTransform(const QMatrix4x4 &matrix);
 
     /*!
+     * \qmlmethod void AnnotationDocument::applyColorAdjustment(matrix4x4 matrix, real gamma)
+     *
+     * \brief Apply a color adjustment and combine it with any existing color adjustments.
+     *
+     * \a{matrix} provides a color transformation in a linear colorspace.
+     * If \a{matrix} is an identity matrix, a matrix transformation will not be applied.
+     *
+     * \a{gamma} provides a gamma adjustment for colors in the linear colorspace.
+     * If \a{gamma} is close to or less than 0 or close to 1 (see the \c{float}
+     * variant of \c{qFuzzyIsNull} and \c{qFuzzyCompare}), a new gamma will not
+     * be applied.
+     */
+    Q_INVOKABLE void applyColorAdjustment(const QMatrix4x4 &matrix, qreal gamma = 1.0f);
+
+    /*!
      * \qmlmethod void AnnotationDocument::clearAnnotations()
      * Clear all annotations. Cannot be undone.
      */

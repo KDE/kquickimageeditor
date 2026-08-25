@@ -57,6 +57,11 @@ public:
 
     // The current colorspace.
     QColorSpace colorSpace = QColorSpace::SRgb;
+    // transform for the image's color channels.
+    // The row order is red, green, blue, perspective/attenuation.
+    QMatrix4x4 colorMatrix;
+    float gammaAdjustment = 1.0f;
+
     // stores separately so we can compare the original base image to new base images
     qint64 originalCacheKey = 0;
     // The base screenshot image
@@ -94,6 +99,8 @@ public:
     // want to support expanding the canvas to be larger than the base image in the future. This
     // would require using the a translation to move the base image around in the canvas area.
     void setTransform(const QMatrix4x4 &newTransform);
+
+    void setColorAdjustment(const QMatrix4x4 &matrix, float gamma);
 
     HistoryItem::shared_ptr popCurrentItem();
 
