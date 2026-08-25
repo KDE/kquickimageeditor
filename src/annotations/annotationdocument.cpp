@@ -19,14 +19,32 @@
 
 using namespace Qt::StringLiterals;
 
+inline QColorSpace imageColorSpace(const QImage &image)
+{
+    auto cs = image.colorSpace();
+    if (cs.isValidTarget()) {
+        return cs;
+    }
+    return QColorSpace::SRgb;
+}
+
 QImage defaultImage(const QSize &size, qreal dpr)
 {
-    // RGBA is better for use with stackblur
+    // RGBA is better for frequent updates to large regions of the scene graph
+    // than ARGB since there's no need to rearrange (swizzle) the channels.
+    // ARGB is better for frequent updates to large regions with QPainter.
+    // Our QPainter logic usually updates small regions frequently and large
+    // regions infrequently.
     QImage image(size, QImage::Format_RGBA8888_Premultiplied);
-    if (!image.isNull()) {
-        image.setDevicePixelRatio(dpr);
-        image.fill(Qt::transparent);
-    }
+    // All of the following QImage methods will no-op if the QImage is null
+    // (e.g., invalid size, failed to allocate).
+    // ---
+    // By default, QImage has an invalid QColorSpace that is assumed sRGB by
+    // QPainter and other Qt/KDE APIs.
+    // Explicitly use sRGB so that we can track the colorspace.
+    image.setColorSpace(QColorSpace::SRgb);
+    image.setDevicePixelRatio(dpr);
+    image.fill(Qt::transparent);
     return image;
 }
 
@@ -175,9 +193,12 @@ void AnnotationDocument::setBaseImage(const QImage &image)
         return;
     }
     d->baseImage = image;
-    d->setCanvas(deviceIndependentRect(d->baseImage), d->baseImage.devicePixelRatio(), QTransform{});
     d->originalCacheKey = image.cacheKey();
     d->baseImage.convertTo(Utils::formatForQPainter(image.format()));
+    const auto baseCS = imageColorSpace(image);
+    d->baseImage.setColorSpace(baseCS);
+    d->setCanvas(deviceIndependentRect(image), image.devicePixelRatio(), QTransform{});
+    d->colorSpace = baseCS;
 }
 
 void AnnotationDocument::setBaseImage(const QString &path)

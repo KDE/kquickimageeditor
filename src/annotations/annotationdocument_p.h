@@ -55,6 +55,8 @@ public:
     // transform for processing annotation input
     QMatrix4x4 inputTransform;
 
+    // The current colorspace.
+    QColorSpace colorSpace = QColorSpace::SRgb;
     // stores separately so we can compare the original base image to new base images
     qint64 originalCacheKey = 0;
     // The base screenshot image
