@@ -372,4 +372,39 @@ public:
         }
         return usesAlpha ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32;
     }
+
+    // The value threshold used by qFuzzyIsNull and qFuzzyCompare
+    template<std::floating_point T>
+    static constexpr T fuzzyEpsilon()
+    {
+        if constexpr (std::same_as<T, float>) {
+            // A negative power of 10 two orders of magnitude more than float epsilon.
+            return 1e-5;
+        } else if constexpr (std::same_as<T, double>) {
+            // A negative power of 10 four orders of magnitude more than double epsilon.
+            return 1e-12;
+        }
+    }
+
+    Q_INVOKABLE static constexpr qreal fuzzyEpsilonF32()
+    {
+        return fuzzyEpsilon<float>();
+    }
+
+    // The smallest value increment for a 32-bit float.
+    Q_INVOKABLE static constexpr qreal epsilonF32()
+    {
+        return std::numeric_limits<float>::epsilon();
+    }
+
+    Q_INVOKABLE static constexpr bool fuzzyIsNullF32(qreal v)
+    {
+        return v <= fuzzyEpsilon<float>() && v >= -fuzzyEpsilon<float>();
+    }
+
+    Q_INVOKABLE static constexpr bool fuzzyCompareF32(qreal v1, qreal v2)
+    {
+        return Utils::fuzzyIsNullF32(std::max(v1, v2) - std::min(v1, v2));
+    }
+
 };
