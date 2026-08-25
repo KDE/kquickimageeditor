@@ -58,6 +58,8 @@ target_sources(KQuickImageEditor PRIVATE
     annotations/traits.cpp
     annotations/traits.h
     annotations/utils.h
+    annotations/coloradjustment.cpp
+    annotations/coloradjustment.h
 
     commands/undocommand.cpp
     commands/undocommand.h
