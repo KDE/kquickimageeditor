@@ -61,6 +61,35 @@ class KQUICKIMAGEEDITOR_EXPORT AnnotationViewport : public QQuickItem
      */
     Q_PROPERTY(QPainterPath hoveredMousePath READ hoveredMousePath NOTIFY hoveredMousePathChanged)
 
+    /*!
+    \qmlproperty matrix4x4 AnnotationViewport::colorMatrix
+
+    \brief Matrix for color transformations after converting to a linear
+    colorspace and before converting back to the original colorspace.
+
+    The 3x3 area from \c{m11} to \c{m33} is for RGB scale and rotation/shear.
+    \c{m41}, \c{m42} and \c{m43} are for RGB translation.
+    \c{m14}, \c{m24} and \c{m34} are for RGB attenuation.
+    \c{m44} is a global divisor.
+    */
+    Q_PROPERTY(QMatrix4x4 colorMatrix READ colorMatrix WRITE setColorMatrix NOTIFY colorMatrixChanged)
+
+    /*!
+    \qmlproperty real AnnotationViewport::gammaAdjustment
+
+    \brief A gamma adjustment to be applied to colors after converting to a
+    linear colorspace and before converting back to the original colorspace.
+
+    Gamma is a power applied to color values to transform them in a non-linear
+    way. Usually, gamma is used to make color values match the way we perceive
+    colors more closely. This adjustment stacks with the colorspace's gamma.
+
+    A value close to 1 (±0.00001) or less than 0.00001 does nothing. Values equal
+    to or less than 0 are not allowed because the preview shader effect may have
+    undefined behavior with those values.
+    */
+    Q_PROPERTY(qreal gammaAdjustment READ gammaAdjustment WRITE setGammaAdjustment NOTIFY gammaAdjustmentChanged)
+
 public:
     explicit AnnotationViewport(QQuickItem *parent = nullptr);
     ~AnnotationViewport() noexcept override;
@@ -84,6 +113,12 @@ public:
     /// Hovered mouse interaction path in non-transformed logical document coordinates
     QPainterPath hoveredMousePath() const;
 
+    QMatrix4x4 colorMatrix() const;
+    void setColorMatrix(const QMatrix4x4 &matrix);
+
+    qreal gammaAdjustment() const;
+    void setGammaAdjustment(qreal gamma);
+
 Q_SIGNALS:
     void viewportRectChanged();
     void documentChanged();
@@ -93,6 +128,8 @@ Q_SIGNALS:
     void pressedChanged();
     void anyPressedChanged();
     void hoveredMousePathChanged();
+    void colorMatrixChanged();
+    void gammaAdjustmentChanged();
 
 protected:
     void hoverEnterEvent(QHoverEvent *event) override;

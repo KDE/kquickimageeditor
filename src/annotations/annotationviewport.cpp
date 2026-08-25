@@ -10,12 +10,205 @@
 #include <QCursor>
 #include <QPainter>
 #include <QQuickWindow>
+#include <QSGGeometry>
+#include <QSGGeometryNode>
+#include <QSGTextureMaterial>
+#include <QSGMaterialShader>
 #include <QSGImageNode>
+#include <QSGTexture>
 #include <QScreen>
+
+using namespace Qt::StringLiterals;
 
 static QList<AnnotationViewport *> s_viewportInstances{};
 static bool s_synchronizingAnyPressed = false;
 static bool s_isAnyPressed = false;
+
+using QMatrix4x4Data = float[4][4];
+
+struct DataInfo {
+    size_t offet;
+    size_t size;
+};
+
+struct UniformData {
+    using Ptr = std::shared_ptr<UniformData>;
+    enum class DirtyFlag {
+        None = 0,
+        ColorMatrix = 1,
+        Gamma = 1 << 1,
+    };
+    Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
+    static constexpr DataInfo qt_Matrix_info{0uz, sizeof(QMatrix4x4Data)};
+    static constexpr DataInfo colorMatrix_info{qt_Matrix_info.offet + qt_Matrix_info.size, sizeof(QMatrix4x4Data)};
+    static constexpr DataInfo gamma_info{colorMatrix_info.offet + colorMatrix_info.size, sizeof(float)};
+    static constexpr DataInfo qt_Opacity_info{gamma_info.offet + gamma_info.size, sizeof(float)};
+
+    QMatrix4x4 colorMatrix;
+    float gamma = 1.0f;
+    // For keeping track of which data changed
+    DirtyFlags dirtyFlags = DirtyFlag::None;
+};
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(UniformData::DirtyFlags)
+
+class BaseImageMaterialShader : public QSGMaterialShader
+{
+public:
+    BaseImageMaterialShader()
+    {
+        setShaderFileName(VertexStage, ":/qt/qml/org/kde/kquickimageeditor/private/coloradjustment.vert.qsb"_L1);
+        setShaderFileName(FragmentStage, ":/qt/qml/org/kde/kquickimageeditor/private/coloradjustment.frag.qsb"_L1);
+    }
+    bool updateUniformData(RenderState &state, QSGMaterial *newMaterial, QSGMaterial *oldMaterial) override;
+    void updateSampledImage(RenderState &state, int binding, QSGTexture **sampledTexture, QSGMaterial *newMaterial, QSGMaterial *oldMaterial) override;
+};
+
+class BaseImageMaterial : public QSGTextureMaterial
+{
+public:
+    UniformData::Ptr uniformData;
+
+    BaseImageMaterial(const UniformData::Ptr &uniformData)
+        : uniformData(uniformData)
+    {
+    }
+    ~BaseImageMaterial() override
+    {
+        delete texture();
+    }
+    QSGMaterialType *type() const override
+    {
+        static QSGMaterialType type;
+        return &type;
+    }
+    QSGMaterialShader *createShader(QSGRendererInterface::RenderMode renderMode [[maybe_unused]]) const override
+    {
+        return new BaseImageMaterialShader;
+    }
+    int compare(const QSGMaterial *o) const override
+    {
+        if (auto cmp = QSGTextureMaterial::compare(o); cmp != 0) {
+            return cmp;
+        }
+        auto other = static_cast<const BaseImageMaterial *>(o);
+        if (auto diff = uniformData->gamma - other->uniformData->gamma; diff != 0) {
+            return diff < 0 ? -1 : 1;
+        }
+        auto diffMatrix = uniformData->colorMatrix - other->uniformData->colorMatrix;
+        auto matrixData = diffMatrix.constData();
+        for (int i = 0; i < 16; ++i) {
+            if (auto diff = matrixData[i]; diff != 0) {
+                return diff < 0 ? -1 : 1;
+            }
+        }
+        return 0;
+    }
+};
+
+bool BaseImageMaterialShader::updateUniformData(RenderState &state, QSGMaterial *newMaterial, QSGMaterial *oldMaterial)
+{
+    bool changed = false;
+    auto uniformBuffer = state.uniformData();
+    const auto uniformData = uniformBuffer->data();
+
+    if (state.isMatrixDirty()) {
+        const QMatrix4x4 qt_Matrix = state.combinedMatrix();
+        memcpy(uniformData + UniformData::qt_Matrix_info.offet, //
+               qt_Matrix.constData(),
+               UniformData::qt_Matrix_info.size);
+        changed = true;
+    }
+
+    auto baseImageMaterial = static_cast<BaseImageMaterial *>(newMaterial);
+    bool materialChanged = oldMaterial != newMaterial;
+    auto &dirty = baseImageMaterial->uniformData->dirtyFlags;
+    if (materialChanged || dirty != UniformData::DirtyFlag::None) {
+        if (materialChanged || dirty.testFlag(UniformData::DirtyFlag::ColorMatrix)) {
+            memcpy(uniformData + UniformData::colorMatrix_info.offet, //
+                   baseImageMaterial->uniformData->colorMatrix.constData(),
+                   UniformData::colorMatrix_info.size);
+            dirty.setFlag(UniformData::DirtyFlag::ColorMatrix, false);
+        }
+        if (materialChanged || dirty.testFlag(UniformData::DirtyFlag::Gamma)) {
+            memcpy(uniformData + UniformData::gamma_info.offet, //
+                   &baseImageMaterial->uniformData->gamma,
+                   UniformData::gamma_info.size);
+            dirty.setFlag(UniformData::DirtyFlag::Gamma, false);
+        }
+        changed = true;
+    }
+
+    if (state.isOpacityDirty()) {
+        const float qt_Opacity = state.opacity();
+        memcpy(uniformData + UniformData::qt_Opacity_info.offet, //
+               &qt_Opacity,
+               UniformData::qt_Opacity_info.size);
+        changed = true;
+    }
+    return changed;
+}
+
+void BaseImageMaterialShader::updateSampledImage(RenderState &renderState [[maybe_unused]], int binding, QSGTexture **sampledTexture, QSGMaterial *newMaterial, QSGMaterial *oldMaterial [[maybe_unused]])
+{
+    if (binding == 1) {
+        auto *material = static_cast<BaseImageMaterial *>(newMaterial);
+        auto *materialTexture = material->texture();
+        materialTexture->setFiltering(material->filtering());
+        materialTexture->setMipmapFiltering(material->mipmapFiltering());
+        materialTexture->setHorizontalWrapMode(material->horizontalWrapMode());
+        materialTexture->setVerticalWrapMode(material->verticalWrapMode());
+        materialTexture->commitTextureOperations(renderState.rhi(), renderState.resourceUpdateBatch());
+        *sampledTexture = materialTexture;
+    }
+}
+
+class BaseImageNode : public QSGGeometryNode
+{
+    QRectF m_rect;
+    static constexpr QRectF m_normalizedSourceRect{0.0, 0.0, 1.0, 1.0};
+
+public:
+
+    BaseImageNode(const UniformData::Ptr &uniformData)
+    {
+        setMaterial(new BaseImageMaterial(uniformData));
+        setFlag(OwnsMaterial, true);
+
+        QSGGeometry *g = new QSGGeometry(QSGGeometry::defaultAttributes_TexturedPoint2D(), 4);
+        QSGGeometry::updateTexturedRectGeometry(g, QRect(), QRect());
+        setGeometry(g);
+        setFlag(OwnsGeometry, true);
+    }
+
+    void setRect(const QRectF &rect)
+    {
+        if (rect == m_rect) {
+            return;
+        }
+        m_rect = rect;
+        QSGGeometry::updateTexturedRectGeometry(geometry(), rect, m_normalizedSourceRect);
+        markDirty(DirtyGeometry);
+    }
+
+    const UniformData::Ptr &uniformData() const
+    {
+        return static_cast<BaseImageMaterial *>(material())->uniformData;
+    }
+
+    QSGTexture *texture() const
+    {
+        return static_cast<BaseImageMaterial *>(material())->texture();
+    }
+
+    void setTexture(QSGTexture *texture)
+    {
+        auto *m = static_cast<BaseImageMaterial *>(material());
+        delete m->texture();
+        m->setTexture(texture);
+        markDirty(DirtyMaterial);
+    }
+};
 
 class AnnotationViewportPrivate
 {
@@ -33,6 +226,7 @@ public:
     QPainterPath hoveredMousePath;
     bool repaintBaseImage = true;
     bool repaintAnnotations = true;
+    UniformData::Ptr uniformData = std::make_shared<UniformData>();
 
     AnnotationViewportPrivate(AnnotationViewport *q)
         : q(q)
@@ -56,21 +250,20 @@ QPointF AnnotationViewportPrivate::inputOffset() const
 
 class AnnotationViewportNode : public QSGNode
 {
-    QSGImageNode *m_baseImageNode;
+    BaseImageNode *m_baseImageNode;
     QSGImageNode *m_annotationsNode;
 
 public:
-    AnnotationViewportNode(QSGImageNode *baseImageNode, QSGImageNode *annotationsNode)
+    AnnotationViewportNode(BaseImageNode *baseImageNode, QSGImageNode *annotationsNode)
         : QSGNode()
         , m_baseImageNode(baseImageNode)
         , m_annotationsNode(annotationsNode)
     {
-        baseImageNode->setOwnsTexture(true);
         appendChildNode(baseImageNode);
         annotationsNode->setOwnsTexture(true);
         appendChildNode(annotationsNode);
     }
-    QSGImageNode *baseImageNode() const
+    BaseImageNode *baseImageNode() const
     {
         return m_baseImageNode;
     }
@@ -253,6 +446,39 @@ void AnnotationViewportPrivate::setHoveredMousePath(const QPainterPath &path)
     }
     hoveredMousePath = path;
     Q_EMIT q->hoveredMousePathChanged();
+}
+
+QMatrix4x4 AnnotationViewport::colorMatrix() const
+{
+    return d->uniformData->colorMatrix;
+}
+
+void AnnotationViewport::setColorMatrix(const QMatrix4x4 &matrix)
+{
+    if (qFuzzyCompare(d->uniformData->colorMatrix, matrix)) {
+        return;
+    }
+    d->uniformData->colorMatrix = matrix;
+    d->uniformData->dirtyFlags.setFlag(UniformData::DirtyFlag::ColorMatrix, true);
+    Q_EMIT colorMatrixChanged();
+}
+
+qreal AnnotationViewport::gammaAdjustment() const
+{
+    // we invert because gamma stored as an inverted power
+    return 1.0 / d->uniformData->gamma;
+}
+
+void AnnotationViewport::setGammaAdjustment(qreal gammaAdjustment)
+{
+    // we invert because gamma is applied inversely in linear colorspaces
+    const auto inv = 1.0 / gammaAdjustment;
+    if (!std::isfinite(inv) || Utils::fuzzyCompareF32(d->uniformData->gamma, inv)) {
+        return;
+    }
+    d->uniformData->gamma = inv;
+    d->uniformData->dirtyFlags.setFlag(UniformData::DirtyFlag::Gamma, true);
+    Q_EMIT gammaAdjustmentChanged();
 }
 
 void AnnotationViewport::hoverEnterEvent(QHoverEvent *event)
@@ -448,13 +674,14 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
     const auto window = this->window();
     auto node = static_cast<AnnotationViewportNode *>(oldNode);
     if (!node) {
-        node = new AnnotationViewportNode(window->createImageNode(), //
+        node = new AnnotationViewportNode(new BaseImageNode(d->uniformData), //
                                           window->createImageNode());
-        node->baseImageNode()->setFiltering(QSGTexture::Linear);
+        auto baseImageMaterial = static_cast<BaseImageMaterial *>(node->baseImageNode()->material());
+        baseImageMaterial->setFiltering(QSGTexture::Linear);
         node->annotationsNode()->setFiltering(QSGTexture::Linear);
         // Setting the mipmap filter type also enables mipmaps.
         // Super useful for scaling down smoothly.
-        node->baseImageNode()->setMipmapFiltering(QSGTexture::Linear);
+        baseImageMaterial->setMipmapFiltering(QSGTexture::Linear);
         node->annotationsNode()->setMipmapFiltering(QSGTexture::Linear);
     }
 
@@ -478,8 +705,18 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
     };
 
     auto baseImageNode = node->baseImageNode();
+    if (d->uniformData->dirtyFlags != UniformData::DirtyFlag::None) {
+        baseImageNode->markDirty(BaseImageNode::DirtyMaterial);
+    }
     if (!baseImageNode->texture() || d->repaintBaseImage) {
-        baseImageNode->setTexture(window->createTextureFromImage(getImage(d->document->canvasBaseImage())));
+        auto image = getImage(d->document->canvasBaseImage());
+        QQuickWindow::CreateTextureOptions createTextureOptions = QQuickWindow::TextureHasMipmaps;
+        if (image.hasAlphaChannel()) {
+            createTextureOptions |= QQuickWindow::TextureHasAlphaChannel;
+        } else {
+            createTextureOptions |= QQuickWindow::TextureIsOpaque;
+        }
+        baseImageNode->setTexture(window->createTextureFromImage(image, createTextureOptions));
         d->repaintBaseImage = false;
     }
 
@@ -489,7 +726,7 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
         d->repaintAnnotations = false;
     }
 
-    auto setupImageNode = [&](QSGImageNode *node) {
+    auto setupImageNode = [&](auto *node) {
         auto size = node->texture()->textureSize().toSizeF() / windowDpr;
         if (!size.isEmpty()) {
             QPointF pos(std::round((width() - size.width()) / 2 * windowDpr) / windowDpr, //
