@@ -187,7 +187,7 @@ public:
     static inline QImage shapeShadow(const Traits::OptTuple &traits, qreal devicePixelRatio = 1)
     {
         auto &shadowTrait = std::get<Traits::Shadow::Opt>(traits);
-        if (!Traits::isVisible(traits) || !shadowTrait) {
+        if (!shadowTrait || !Traits::isVisible(traits)) {
             return QImage();
         }
 
