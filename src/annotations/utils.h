@@ -193,7 +193,9 @@ public:
 
         auto &geometryTrait = std::get<Traits::Geometry::Opt>(traits);
         auto &visualTrait = std::get<Traits::Visual::Opt>(traits);
-        QImage shadow(visualTrait->rect.size().toSize() * devicePixelRatio, QImage::Format_RGBA8888_Premultiplied);
+        QImage shadow(std::ceil(visualTrait->rect.width() * devicePixelRatio), //
+                      std::ceil(visualTrait->rect.height() * devicePixelRatio),
+                      QImage::Format_RGBA8888_Premultiplied);
         shadow.fill(Qt::transparent);
         QPainter p(&shadow);
         p.setRenderHint(QPainter::Antialiasing);
