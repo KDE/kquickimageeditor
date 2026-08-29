@@ -523,7 +523,7 @@ void AnnotationDocumentPrivate::paintAnnotations(QPainter *painter, const QRegio
         if (shadow && shadow->enabled) {
             QImage image = Utils::shapeShadow(renderedItem->traits());
             painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-            painter->drawImage(visual->rect, image);
+            painter->drawImage({visual->rect.topLeft(), image.deviceIndependentSize()}, image);
         }
 
         auto &geometry = std::get<Traits::Geometry::Opt>(renderedItem->traits());

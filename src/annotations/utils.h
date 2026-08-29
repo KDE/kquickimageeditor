@@ -196,13 +196,13 @@ public:
         QImage shadow(std::ceil(visualTrait->rect.width() * devicePixelRatio), //
                       std::ceil(visualTrait->rect.height() * devicePixelRatio),
                       QImage::Format_ARGB32_Premultiplied);
+        shadow.setDevicePixelRatio(devicePixelRatio); // also scales QPainter
         shadow.fill(Qt::transparent);
         QPainter p(&shadow);
         p.setRenderHint(QPainter::Antialiasing);
         p.setCompositionMode(QPainter::CompositionMode_Source);
         p.setPen(Qt::NoPen);
         p.setBrush(Qt::NoBrush);
-        p.scale(devicePixelRatio, devicePixelRatio);
         p.translate(-visualTrait->rect.topLeft() //
                     + QPointF{Traits::Shadow::xOffset, Traits::Shadow::yOffset});
 
