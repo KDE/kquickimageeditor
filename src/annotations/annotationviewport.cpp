@@ -224,8 +224,8 @@ public:
     bool allowDraggingSelection = false;
     bool acceptKeyReleaseEvents = false;
     QPainterPath hoveredMousePath;
-    bool repaintBaseImage = true;
-    bool repaintAnnotations = true;
+    bool updateBaseImageTexture = true;
+    bool updateAnnotationsTexture = true;
     UniformData::Ptr uniformData = std::make_shared<UniformData>();
 
     AnnotationViewportPrivate(AnnotationViewport *q)
@@ -301,8 +301,8 @@ void AnnotationViewport::setViewportRect(const QRectF &rect)
     }
     d->viewportRect = rect;
     Q_EMIT viewportRectChanged();
-    d->repaintBaseImage = true;
-    d->repaintAnnotations = true;
+    d->updateBaseImageTexture = true;
+    d->updateAnnotationsTexture = true;
     update();
 }
 
@@ -322,15 +322,13 @@ void AnnotationViewport::setDocument(AnnotationDocument *doc)
     }
 
     d->document = doc;
-    auto repaint = [this](AnnotationDocument::RepaintTypes types) {
+    auto updateTextures = [this](AnnotationDocument::RepaintTypes types) {
         using RepaintType = AnnotationDocument::RepaintType;
-        if (types.testFlag(RepaintType::BaseImage)) {
-            d->repaintBaseImage = true;
+        d->updateBaseImageTexture |= types.testFlag(RepaintType::BaseImage);
+        d->updateAnnotationsTexture |= types.testFlag(RepaintType::Annotations);
+        if (d->updateBaseImageTexture || d->updateAnnotationsTexture) {
+            update();
         }
-        if (types.testFlag(RepaintType::Annotations)) {
-            d->repaintAnnotations = true;
-        }
-        update();
     };
     connect(doc, &AnnotationDocument::repaintNeeded, this, repaint);
     connect(doc->tool(), &AnnotationTool::typeChanged, this, [this] {
@@ -708,7 +706,7 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
     if (d->uniformData->dirtyFlags != UniformData::DirtyFlag::None) {
         baseImageNode->markDirty(BaseImageNode::DirtyMaterial);
     }
-    if (!baseImageNode->texture() || d->repaintBaseImage) {
+    if (!baseImageNode->texture() || d->updateBaseImageTexture) {
         auto image = getImage(d->document->canvasBaseImage());
         QQuickWindow::CreateTextureOptions createTextureOptions = QQuickWindow::TextureHasMipmaps;
         if (image.hasAlphaChannel()) {
@@ -717,13 +715,13 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
             createTextureOptions |= QQuickWindow::TextureIsOpaque;
         }
         baseImageNode->setTexture(window->createTextureFromImage(image, createTextureOptions));
-        d->repaintBaseImage = false;
+        d->updateBaseImageTexture = false;
     }
 
     auto annotationsNode = node->annotationsNode();
-    if (!annotationsNode->texture() || d->repaintAnnotations) {
+    if (!annotationsNode->texture() || d->updateAnnotationsTexture) {
         annotationsNode->setTexture(window->createTextureFromImage(getImage(d->document->annotationsImage())));
-        d->repaintAnnotations = false;
+        d->updateAnnotationsTexture = false;
     }
 
     auto setupImageNode = [&](auto *node) {
@@ -746,8 +744,8 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
 void AnnotationViewport::itemChange(ItemChange change, const ItemChangeData &value)
 {
     if (change == ItemDevicePixelRatioHasChanged) {
-        d->repaintBaseImage = true;
-        d->repaintAnnotations = true;
+        d->updateBaseImageTexture = true;
+        d->updateAnnotationsTexture = true;
         update();
     }
     QQuickItem::itemChange(change, value);
