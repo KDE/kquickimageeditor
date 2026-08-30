@@ -21,14 +21,6 @@
 
 using namespace Qt::StringLiterals;
 
-// used to compress repaint logic
-static auto s_repaintTimer = [] -> std::unique_ptr<QTimer> {
-    auto timer = std::make_unique<QTimer>();
-    timer->setSingleShot(true);
-    timer->setInterval(0);
-    return timer;
-}();
-
 inline QColorSpace imageColorSpace(const QImage &image)
 {
     auto cs = image.colorSpace();
@@ -112,7 +104,7 @@ AnnotationDocument::AnnotationDocument(QObject *parent)
     : QObject(parent)
     , d(std::make_unique<AnnotationDocumentPrivate>(this))
 {
-    connect(s_repaintTimer.get(), &QTimer::timeout, this, [this] {
+    d->repaintDebouncer->callOnTimeout([this] {
         updateImages(this, d.get());
     });
 }
@@ -1057,7 +1049,7 @@ void AnnotationDocumentPrivate::setRepaintRegion(const QRectF &rect, AnnotationD
     repaintRegion += biggerRect;
     repaintTypes |= types;
     if (emitRepaintNeeded) {
-        s_repaintTimer->start();
+        repaintDebouncer->start();
     }
 }
 
@@ -1067,7 +1059,7 @@ void AnnotationDocumentPrivate::setRepaintRegion(AnnotationDocument::RepaintType
     repaintRegion = invertedTransform.mapRect(canvasRect).toAlignedRect();
     repaintTypes |= types;
     if (emitRepaintNeeded) {
-        s_repaintTimer->start();
+        repaintDebouncer->start();
     }
 }
 

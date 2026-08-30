@@ -6,6 +6,7 @@
 
 #include "annotationdocument.h"
 #include "history.h"
+#include <QTimer>
 
 class SelectedItemWrapperPrivate
 {
@@ -41,6 +42,8 @@ public:
     AnnotationTool *const tool = nullptr;
     SelectedItemWrapper *const selectedItemWrapper = nullptr;
 
+    // Used to debounce/compress multiple repaints into one.
+    QTimer *const repaintDebouncer = nullptr;
     // The rectangle that contains the document area.
     QRectF canvasRect;
     // The device pixel ratio for the document's coordinate system.
@@ -87,7 +90,11 @@ public:
         : q(q)
         , tool(new AnnotationTool(q))
         , selectedItemWrapper(new SelectedItemWrapper(q))
-    {}
+        , repaintDebouncer(new QTimer(q))
+    {
+        repaintDebouncer->setSingleShot(true);
+        repaintDebouncer->setInterval(0);
+    }
 
     // Set the canvas rect, device pixel ratio and image size, then reset the images.
     void setCanvas(const QRectF &rect, qreal dpr, const std::optional<QMatrix4x4> &newTransform = std::nullopt);
