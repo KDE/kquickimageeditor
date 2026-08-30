@@ -193,8 +193,13 @@ public:
 
         auto &geometryTrait = std::get<Traits::Geometry::Opt>(traits);
         auto &visualTrait = std::get<Traits::Visual::Opt>(traits);
-        QImage shadow(std::ceil(visualTrait->rect.width() * devicePixelRatio), //
-                      std::ceil(visualTrait->rect.height() * devicePixelRatio),
+        auto round = [&](qreal value) -> int {
+            // HACK: the stack blur doesn't render horizontal shadow edges well
+            // unless the image size is a multiple of 4.
+            return std::max(4.0, std::ceil(value * devicePixelRatio / 4) * 4);
+        };
+        QImage shadow(round(visualTrait->rect.width()), //
+                      round(visualTrait->rect.height()),
                       QImage::Format_ARGB32_Premultiplied);
         shadow.setDevicePixelRatio(devicePixelRatio); // also scales QPainter
         shadow.fill(Qt::transparent);
