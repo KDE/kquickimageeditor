@@ -1151,6 +1151,8 @@ void SelectedItemWrapperPrivate::setSelectedItem(const HistoryItem::const_shared
     }
     // all bindings using the selectedItem property should be re-evalulated when emitted
     Q_EMIT document->selectedItemWrapperChanged();
+    Q_EMIT q->hasSelectionChanged();
+    Q_EMIT q->optionsChanged();
 }
 
 void SelectedItemWrapper::applyTransform(const QMatrix4x4 &matrix)

@@ -297,8 +297,8 @@ class KQUICKIMAGEEDITOR_EXPORT SelectedItemWrapper : public QObject
     QML_ELEMENT
     QML_UNCREATABLE("Created by AnnotationDocument")
 
-    Q_PROPERTY(bool hasSelection READ hasSelection CONSTANT)
-    Q_PROPERTY(AnnotationTool::Options options READ options CONSTANT)
+    Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY hasSelectionChanged)
+    Q_PROPERTY(AnnotationTool::Options options READ options NOTIFY optionsChanged)
     Q_PROPERTY(int strokeWidth READ strokeWidth WRITE setStrokeWidth NOTIFY strokeWidthChanged)
     Q_PROPERTY(QColor strokeColor READ strokeColor WRITE setStrokeColor NOTIFY strokeColorChanged)
     Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged)
@@ -364,6 +364,8 @@ public:
     QMatrix4x4 transform() const;
 
 Q_SIGNALS:
+    void hasSelectionChanged();
+    void optionsChanged();
     void strokeWidthChanged();
     void strokeColorChanged();
     void fillColorChanged();
