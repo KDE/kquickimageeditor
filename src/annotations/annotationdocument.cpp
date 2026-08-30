@@ -225,10 +225,10 @@ void AnnotationDocument::setBaseImage(const QImage &image)
     d->baseImage.convertTo(Utils::formatForQPainter(image.format()));
     const auto baseCS = imageColorSpace(image);
     d->baseImage.setColorSpace(baseCS);
-    d->setCanvas(deviceIndependentRect(image), image.devicePixelRatio(), QTransform{});
     d->colorMatrix = {};
     d->gammaAdjustment = 1.0f;
     d->colorSpace = baseCS;
+    d->setCanvas(deviceIndependentRect(image), image.devicePixelRatio(), QTransform{});
 }
 
 void AnnotationDocument::setBaseImage(const QString &path)
