@@ -107,6 +107,7 @@ AnnotationDocument::AnnotationDocument(QObject *parent)
     d->repaintDebouncer->callOnTimeout([this] {
         updateImages(this, d.get());
     });
+    connect(this, &AnnotationDocument::repaintNeeded, d->repaintDebouncer, qOverload<>(&QTimer::start));
 }
 
 AnnotationDocument::~AnnotationDocument() = default;
@@ -1049,7 +1050,7 @@ void AnnotationDocumentPrivate::setRepaintRegion(const QRectF &rect, AnnotationD
     repaintRegion += biggerRect;
     repaintTypes |= types;
     if (emitRepaintNeeded) {
-        repaintDebouncer->start();
+        Q_EMIT q->repaintNeeded(repaintTypes);
     }
 }
 
@@ -1059,7 +1060,7 @@ void AnnotationDocumentPrivate::setRepaintRegion(AnnotationDocument::RepaintType
     repaintRegion = invertedTransform.mapRect(canvasRect).toAlignedRect();
     repaintTypes |= types;
     if (emitRepaintNeeded) {
-        repaintDebouncer->start();
+        Q_EMIT q->repaintNeeded(repaintTypes);
     }
 }
 
