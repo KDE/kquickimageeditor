@@ -330,7 +330,7 @@ void AnnotationViewport::setDocument(AnnotationDocument *doc)
             update();
         }
     };
-    connect(doc, &AnnotationDocument::repaintNeeded, this, repaint);
+    connect(doc, &AnnotationDocument::repainted, this, updateTextures);
     connect(doc->tool(), &AnnotationTool::typeChanged, this, [this] {
         d->setCursorForToolType();
     });

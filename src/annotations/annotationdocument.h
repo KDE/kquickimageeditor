@@ -269,7 +269,15 @@ Q_SIGNALS:
     void imageDprChanged();
     void transformChanged();
     void modifiedChanged();
+
+    /*!
+     * Emitted when graphics need to be updated.
+     */
     void repaintNeeded(AnnotationDocument::RepaintTypes types);
+    /*!
+     * Emitted after graphics have been updated.
+     */
+    void repainted(AnnotationDocument::RepaintTypes types);
 
 private:
     friend class AnnotationDocumentPrivate;

@@ -38,12 +38,19 @@ class AnnotationDocumentPrivate
     friend class SelectedItemWrapperPrivate;
     friend class AnnotationViewport;
 public:
+    using RepaintType = AnnotationDocument::RepaintType;
+    using RepaintTypes = AnnotationDocument::RepaintTypes;
     AnnotationDocument *const q = nullptr;
     AnnotationTool *const tool = nullptr;
     SelectedItemWrapper *const selectedItemWrapper = nullptr;
 
     // Used to debounce/compress multiple repaints into one.
     QTimer *const repaintDebouncer = nullptr;
+    // The types of things to repaint.
+    std::atomic<RepaintTypes> repaintTypes{RepaintType::NoTypes};
+    // Where a repaint is needed. Set using untransformed document coordinates.
+    QRegion repaintRegion;
+
     // The rectangle that contains the document area.
     QRectF canvasRect;
     // The device pixel ratio for the document's coordinate system.
@@ -74,11 +81,6 @@ public:
     // An image containing just the annotations.
     // It is separate so that we don't need to keep repainting the image underneath.
     QImage annotationsImage;
-    // The last types of things to repaint. Used to determine when to emit repaintNeeded.
-    AnnotationDocument::RepaintTypes repaintTypes = AnnotationDocument::RepaintType::NoTypes;
-    // Where a repaint is needed. Used to determine when to repaint or emit repaintNeeded.
-    // Set using untransformed document coordinates
-    QRegion repaintRegion;
 
     // A temporary version of the item we want to edit so we can modify at will. This will be used
     // instead of the original item when rendering, but the original item will remain in history
