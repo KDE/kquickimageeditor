@@ -12,7 +12,7 @@ set(REQUIRED_QT_VERSION 6.8.0)
 # see if the project still works fine.
 set(REQUIRED_HWY_VERSION 1.3.0)
 
-project(KQuickImageEditor LANGUAGES CXX VERSION 0.6.2)
+project(KQuickImageEditor LANGUAGES CXX VERSION 0.7.0)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 23)
