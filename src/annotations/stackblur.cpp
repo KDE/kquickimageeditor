@@ -350,7 +350,6 @@ HWY_ATTR HWY_FLATTEN void blurRowWorker(const BlurTask &task)
     // Vectors are what actually hold data, but they don't have any members.
     // They don't even have a size until you zero them or assign something.
     // You have to use Highway's APIs to do anything with them.
-    using MVec = hn::Vec<MTag>; // math vector type
 
     // Tags don't have data, Highway just uses them to pass type info.
     MTag mtag;
@@ -374,19 +373,22 @@ HWY_ATTR HWY_FLATTEN void blurRowWorker(const BlurTask &task)
     // do this to multiply it with another vector.
     const auto vMultiplier = hn::Set(mtag, radiusMultiplier<M_t>(radius));
 
+    // Can't put SIMD vectors in a struct/class or any container type on ARM
+    // with SVE since the SIMD vector sizes are only known at runtime.
+
     // Weights should be set like {1, 2, 3, …, radius+1, …, 3, 2, 1}
-    hwy::AlignedVector<MVec> weights(kernelSize);
+    hwy::AlignedVector<M_t> weights(kernelSize);
     // set left side of kernel weights
     for (Px i = 0; i < leftEndMidStart; ++i) {
-        weights[i] = hn::Set(mtag, i + 1);
+        weights[i] = i + 1;
     }
     // set middle and right side of kernel weights
     for (Px i = leftEndMidStart; i < kernelSize; ++i) {
-        weights[i] = hn::Set(mtag, kernelSize - i);
+        weights[i] = kernelSize - i;
     }
 
-    // A queue of pixel data used by the kernel
-    hwy::AlignedVector<MVec> stack(kernelSize);
+    // A queue of channel data used by the kernel
+    hwy::AlignedVector<M_t> stack(kernelSize * channels);
 
     for (Px y = task.startRow; y < task.endRow; ++y) {
         // Inform the compiler if the pointer is aligned and restricted
@@ -408,18 +410,18 @@ HWY_ATTR HWY_FLATTEN void blurRowWorker(const BlurTask &task)
 
         // fill up left side of kernel
         for (Px i = 0; i < leftEndMidStart; ++i) {
-            stack[i] = vFirst;
+            std::copy_n(&rowData[0], channels, &stack[i * channels]);
             // MulAdd multiplies the first two args, then adds the last.
             // Sometimes it's more optimal than Add(Mul(v0, v1), v2).
-            stackSum = hn::MulAdd(vFirst, weights[i], stackSum);
+            stackSum = hn::MulAdd(vFirst, hn::Set(mtag, weights[i]), stackSum);
             sumOut = hn::Add(sumOut, vFirst);
         }
         // fill up middle and right side of kernel
         for (Px i = leftEndMidStart; i < kernelSize; ++i) {
             const Px nextX = std::min(i - radius, lastX); // starts at 1
             const auto vNext = loadPtrToVec<alignment>(ctag, itag, mtag, &rowData[nextX * channels]);
-            stack[i] = vNext;
-            stackSum = hn::MulAdd(vNext, weights[i], stackSum);
+            std::copy_n(&rowData[nextX * channels], channels, &stack[i * channels]);
+            stackSum = hn::MulAdd(vNext, hn::Set(mtag, weights[i]), stackSum);
             sumIn = hn::Add(sumIn, vNext);
         }
 
@@ -441,7 +443,7 @@ HWY_ATTR HWY_FLATTEN void blurRowWorker(const BlurTask &task)
                 // Outgoing data kernel index.
                 // The modulo lets us loop through the kernel.
                 const Px outKI = (kernelMidX - radius + kernelSize) % kernelSize;
-                sumOut = hn::Sub(sumOut, stack[outKI]);
+                sumOut = hn::Sub(sumOut, hn::Load(mtag, &stack[outKI * channels]));
                 // Next middle of kernel
                 if constexpr (Section == LeftEdge) {
                     kernelMidX = std::min(kernelMidX + 1, lastX);
@@ -449,10 +451,11 @@ HWY_ATTR HWY_FLATTEN void blurRowWorker(const BlurTask &task)
                     ++kernelMidX;
                 }
                 const auto vNextKMid = loadPtrToVec<alignment>(ctag, itag, mtag, &row[kernelMidX * channels]);
-                stack[outKI] = vNextKMid; // outgoing is replaced by next
+                // outgoing is replaced by next
+                std::copy_n(&row[kernelMidX * channels], channels, &stack[outKI * channels]);
                 sumIn = hn::Add(sumIn, vNextKMid);
                 stackSum = hn::Add(stackSum, sumIn);
-                const auto vCurrentKMid = stack[kernelMidX % kernelSize];
+                const auto vCurrentKMid = hn::Load(mtag, &stack[(kernelMidX % kernelSize) * channels]);
                 sumOut = hn::Add(sumOut, vCurrentKMid);
                 sumIn = hn::Sub(sumIn, vCurrentKMid);
             }
