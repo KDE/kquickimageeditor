@@ -5,12 +5,15 @@
 
 #include "stackblur.h"
 
+#include "utils.h"
+
 #include <QImage>
 #include <QtConcurrent/QtConcurrentMap>
 
 #include <hwy/aligned_allocator.h>
 #include <hwy/base.h> // basic helper macros, typedefs, concepts and functions
 
+using namespace UtilsNS;
 using namespace StackBlur;
 
 // Prevent multiple inclusion when <hwy/foreach_target.h> re-includes this file.
@@ -42,61 +45,6 @@ using Px = decltype(std::declval<QImage>().width());
 
 template<typename T>
 concept ChannelType = std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t>;
-
-template<size_t Channels>
-concept ChannelCount = Channels == 1 || Channels == 4;
-
-template<auto V>
-concept IsPow2 = (std::is_integral_v<decltype(V)> || std::is_enum_v<decltype(V)>) && (std::has_single_bit(static_cast<size_t>(V)));
-
-// Used to check if lambdas/functions are compatible with other functions.
-// Does not do strict type checking.
-template<typename Func, typename Ret, typename... Args>
-concept CompatibleSignature = std::invocable<Func, Args...> // check args
-    && std::convertible_to<std::invoke_result_t<Func, Args...>, Ret>; // check return type
-
-template<size_t Alignment, size_t RequiredAlignment>
-concept IsSufficientlyAligned = IsPow2<Alignment>
-    && IsPow2<RequiredAlignment>
-    // A cheaper modulo that only works when the right side is a power of 2.
-    && (Alignment & (RequiredAlignment - 1)) == 0;
-
-// Helps you split an extent into chunks based on the size of the chunks.
-template<std::integral T>
-constexpr auto extentToChunks(T extent, T chunk)
-{
-    return (extent + chunk - 1) / chunk;
-}
-
-// Allows us to create a list of tasks with the option to have slight variations
-// from other lists of tasks using the pushBackFunction argument.
-template<std::ranges::contiguous_range Container, std::integral Extent, typename Function>
-    requires CompatibleSignature<Function, void, Container &, Extent, Extent>
-inline Container makeTasks(Extent extent, Extent chunkSize, Function pushBackFunction)
-{
-    // Thread count can change over time, so get a new thread count every time.
-    const Extent threadCount = QThread::idealThreadCount();
-    const Extent extentPerThread = extentToChunks(extent, chunkSize * threadCount);
-    Container tasks;
-    for (Extent i = 0; i < threadCount; ++i) {
-        const Extent start = i * chunkSize * extentPerThread;
-        const Extent end = std::min(start + chunkSize * extentPerThread, extent);
-        if (start < end) {
-            pushBackFunction(tasks, start, end);
-        }
-    }
-    return tasks;
-}
-
-// Avoids needing to use blockingMap if we only have 1 task.
-inline void maybeBlockingMap(const auto &tasks, auto function)
-{
-    if (tasks.size() == 1) {
-        function(tasks.front());
-        return;
-    }
-    QtConcurrent::blockingMap(tasks, function);
-}
 
 // Metadata for threaded blurring
 template<ChannelType C_t, size_t Channels, size_t Alignment>

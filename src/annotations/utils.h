@@ -4,11 +4,347 @@
 
 #pragma once
 
+#include <QColorSpace>
 #include <QImage>
 #include <QMatrix4x4>
 #include <QObject>
+#include <QThread>
+#include <QtConcurrent/QtConcurrentMap>
 #include <QVector2D>
 #include <QtMath>
+
+namespace UtilsNS
+{
+// If at some point in the future we need to do something with relative luminance,
+// here are sRGB relative luminance (Y) weights:
+// rY = 0.212655f, gY = 0.715158f, bY = 0.072187f
+// rgbY_hypotenuse = 0.749615f
+
+template<typename T, typename... Ts>
+concept IsAnyOf = std::disjunction_v<std::is_same<T, Ts>...>;
+
+template<typename T>
+concept ChannelType = IsAnyOf<T, uint8_t, uint16_t, qfloat16, float>;
+
+template<size_t Channels>
+concept ChannelCount = Channels == 1 || Channels == 4;
+
+template<auto V>
+concept IsPow2 = (std::is_integral_v<decltype(V)> || std::is_enum_v<decltype(V)>) && (std::has_single_bit(static_cast<size_t>(V)));
+
+// Used to check if lambdas/functions are compatible with other functions.
+// Does not do strict type checking.
+template<typename Func, typename Ret, typename... Args>
+concept CompatibleSignature = std::invocable<Func, Args...> // check args
+    && std::convertible_to<std::invoke_result_t<Func, Args...>, Ret>; // check return type
+
+template<size_t Alignment, size_t RequiredAlignment>
+concept IsSufficientlyAligned = IsPow2<Alignment>
+    && IsPow2<RequiredAlignment>
+    // A cheaper modulo that only works when the right side is a power of 2.
+    && (Alignment & (RequiredAlignment - 1)) == 0;
+
+// Helps you split an extent into chunks based on the size of the chunks.
+template<std::integral T>
+constexpr auto extentToChunks(T extent, T chunk)
+{
+    return (extent + chunk - 1) / chunk;
+}
+
+// Allows us to create a list of tasks with the option to have slight variations
+// from other lists of tasks using the pushBackFunction argument.
+template<std::ranges::contiguous_range Container, std::integral Extent, typename Function>
+    requires CompatibleSignature<Function, void, Container &, Extent, Extent>
+inline Container makeTasks(Extent extent, Extent chunkSize, Function pushBackFunction)
+{
+    // Thread count can change over time, so get a new thread count every time.
+    const Extent threadCount = QThread::idealThreadCount();
+    const Extent extentPerThread = extentToChunks(extent, chunkSize * threadCount);
+    Container tasks;
+    for (Extent i = 0; i < threadCount; ++i) {
+        const Extent start = i * chunkSize * extentPerThread;
+        const Extent end = std::min(start + chunkSize * extentPerThread, extent);
+        if (start < end) {
+            pushBackFunction(tasks, start, end);
+        }
+    }
+    return tasks;
+}
+
+// Avoids needing to use blockingMap if we only have 1 task.
+inline void maybeBlockingMap(const auto &tasks, auto function)
+{
+    if (tasks.size() == 1) {
+        function(tasks.front());
+        return;
+    }
+    QtConcurrent::blockingMap(tasks, function);
+}
+
+
+// A struct for sharing channel layout info, designed to facilitate compile time
+// code branching.
+// In QImage source code, some formats in the QPixelFormat table will have
+// QPixelFormat::ByteOrder::CurrentSystemEndian, but that's not a problem.
+// The byte order will be resolved to big or little when we need it.
+template<ChannelType C_t,
+         uint8_t ChannelCount,
+         // defaults for 1 channel, must set these with 4 channels
+         QPixelFormat::ByteOrder ByteOrder = QPixelFormat::CurrentSystemEndian,
+         QPixelFormat::AlphaPosition AlphaPosition = QPixelFormat::AtBeginning,
+         QPixelFormat::AlphaPremultiplied AlphaPremultiplied = QPixelFormat::NotPremultiplied>
+    requires(ChannelCount == 1 || (ChannelCount == 4 && ByteOrder != QPixelFormat::CurrentSystemEndian))
+struct ChannelInfo {
+    using Channel_t = C_t;
+    static constexpr auto channelCount = ChannelCount;
+    static constexpr auto byteOrder = ByteOrder;
+    static constexpr auto alphaPosition = AlphaPosition;
+    static constexpr auto alphaPremultiplied = AlphaPremultiplied;
+    using enum QPixelFormat::AlphaPosition;
+    using enum QPixelFormat::ByteOrder;
+    // little endian ARGB: BGRA
+    // big endian ARGB: ARGB
+    // little endian RGBA: ABGR
+    // big endian RGBA: RGBA
+
+    static constexpr uint8_t redIndex = byteOrder == LittleEndian
+        // A0 ? [ B,G(R)A ] : [ A,B,G(R)]
+        ? (alphaPosition == AtBeginning ? 2 : 3)
+        // A0 ? [ A(R)G,B ] : [(R)G,B,A ]
+        : (alphaPosition == AtBeginning ? 1 : 0);
+    static constexpr uint8_t greenIndex = byteOrder == LittleEndian
+        // A0 ? [ B(G)R,A ] : [ A,B(G)R ]
+        ? (alphaPosition == AtBeginning ? 1 : 2)
+        // A0 ? [ A,R(G)B ] : [ R(G)B,A ]
+        : (alphaPosition == AtBeginning ? 2 : 1);
+    static constexpr uint8_t blueIndex = byteOrder == LittleEndian
+        // A0 ? [(B)G,R,A ] : [ A(B)G,R ]
+        ? (alphaPosition == AtBeginning ? 0 : 1)
+        // A0 ? [ A,R,G(B)] : [ R,G(B)A ]
+        : (alphaPosition == AtBeginning ? 3 : 2);
+    static constexpr uint8_t alphaIndex = byteOrder == LittleEndian
+        // A0 ? [ B,G,R(A)] : [(A)B,G,R ]
+        ? (alphaPosition == AtBeginning ? 3 : 0)
+        // A0 ? [(A)R,G,B ] : [ R,G,B(A)]
+        : (alphaPosition == AtBeginning ? 0 : 3);
+    // The logic for green and alpha could be simplified, but leave it as-is
+    // because it's more readable this way and it's constexpr anyway.
+
+    struct ChannelIndices {
+        size_t r = redIndex;
+        size_t g = greenIndex;
+        size_t b = blueIndex;
+        size_t a = alphaIndex;
+        constexpr ChannelIndices &operator+=(size_t add)
+        {
+            r += add;
+            g += add;
+            b += add;
+            a += add;
+            return *this;
+        }
+    };
+    static constexpr ChannelIndices channelIndices{};
+};
+template<typename T>
+concept ChannelInfoType = std::same_as<T, ChannelInfo<typename T::Channel_t, T::channelCount, T::byteOrder, T::alphaPosition, T::alphaPremultiplied>>;
+
+static constexpr size_t uint8Bits = sizeof(uint8_t) << 3;
+static constexpr size_t uint16Bits = sizeof(uint16_t) << 3;
+static constexpr size_t float32Bits = sizeof(float) << 3;
+
+using MatrixFlag_ut = uint32_t;
+enum MatrixFlag : MatrixFlag_ut {
+    MF_Identity = 0,
+    MF_Translation = 1,
+    MF_Scale = 1 << 1,
+    // No point in distinguishing 2D and 3D rotations with an RGB matrix.
+    MF_Rotation = 1 << 2,
+    MF_Perspective = 1 << 3,
+    MF_General = MF_Translation | MF_Scale | MF_Rotation | MF_Perspective,
+};
+// QFlags doesn't work as a template arg, so we need to pass the underlying type
+// value to make a constexpr QFlags object.
+Q_DECLARE_FLAGS(MatrixFlags, MatrixFlag)
+Q_DECLARE_OPERATORS_FOR_FLAGS(MatrixFlags)
+
+template<MatrixFlag_ut MF>
+concept IsIdentity = !MatrixFlags{MF}.testAnyFlags(MF_General);
+
+template<typename T>
+struct VecXW {
+    T x, w;
+};
+
+// A 2x2 matrix with constexpr operation flags and a flat data layout.
+// Unlike a normal 2x2 matrix, this uses X & perspective rows & columns.
+template<MatrixFlag_ut MF, typename T>
+struct Mat2XW {
+    // columns:
+    // 0,  1; rows:
+    T xx, xw; // 0; X|R|Gray
+    T wx, ww; // 1; W|A
+    static constexpr MatrixFlags flags{MF};
+};
+
+// A 4x4 matrix with constexpr operation flags and a flat data layout.
+template<MatrixFlag_ut MF, typename T>
+struct Mat4XYZW {
+    // columns:
+    // 0,  1,  2,  3; rows:
+    T xx, xy, xz, xw; // 0; X|R|C
+    T yx, yy, yz, yw; // 1; Y|G|M
+    T zx, zy, zz, zw; // 2; Z|B|Y
+    T wx, wy, wz, ww; // 3; W|A|K
+    static constexpr MatrixFlags flags{MF};
+};
+
+// Uses the X and perspective rows, unlike the standard map for QVector2D.
+template<MatrixFlag_ut MF, typename T>
+constexpr VecXW<T> mapMatVecXW(const Mat2XW<MF, T> &m, VecXW<T> v)
+{
+    using Mat2XW = std::decay_t<decltype(m)>;
+    if constexpr (IsIdentity<MF> || Mat2XW::flags == MF_Rotation) {
+        return v;
+    }
+    if constexpr (Mat2XW::flags.testFlags(MF_General)) {
+        return {v.x * m.xx + v.w * m.xw, //
+                v.x * m.wx + v.w * m.ww};
+    }
+    if constexpr (Mat2XW::flags.testFlags(MF_Translation | MF_Scale)) {
+        return {v.x * m.xx + m.xw, v.w};
+    }
+    if constexpr (Mat2XW::flags.testFlags(MF_Translation)) {
+        return {v.x + m.xw, v.w};
+    }
+    if constexpr (Mat2XW::flags.testFlags(MF_Scale)) {
+        return {v.x * m.xx, v.w};
+    }
+}
+
+// Like the usual map for QVector4D/vec4 (GLSL), but supports QRgbaFloat and has
+// constexpr branching.
+template<MatrixFlag_ut MF, typename T>
+constexpr QRgbaFloat<T> mapMatVecXYZW(const Mat4XYZW<MF, T> &m, QRgbaFloat<T> v)
+{
+    using Mat4XYZW = std::decay_t<decltype(m)>;
+    if constexpr (IsIdentity<MF>) {
+        return v;
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_General)) {
+        return {v.r * m.xx + v.g * m.xy + v.b * m.xz + v.a * m.xw, //
+                v.r * m.yx + v.g * m.yy + v.b * m.yz + v.a * m.yw,
+                v.r * m.zx + v.g * m.zy + v.b * m.zz + v.a * m.zw,
+                v.r * m.wx + v.g * m.wy + v.b * m.wz + v.a * m.ww};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Translation | MF_Scale | MF_Rotation)) {
+        return {v.r * m.xx + v.g * m.xy + v.b * m.xz + m.xw, //
+                v.r * m.yx + v.g * m.yy + v.b * m.yz + m.yw,
+                v.r * m.zx + v.g * m.zy + v.b * m.zz + m.zw,
+                v.a};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Translation | MF_Scale)) {
+        return {v.r * m.xx + m.xw, //
+                v.g * m.yy + m.yw,
+                v.b * m.zz + m.zw,
+                v.a};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Translation | MF_Rotation)) {
+        return {v.r /*  */ + v.g * m.xy + v.b * m.xz + m.xw, //
+                v.r * m.yx + v.g /*  */ + v.b * m.yz + m.yw,
+                v.r * m.zx + v.g * m.zy + v.b /*  */ + m.zw,
+                v.a};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Scale | MF_Rotation)) {
+        return {v.r * m.xx + v.g * m.xy + v.b * m.xz, //
+                v.r * m.yx + v.g * m.yy + v.b * m.yz,
+                v.r * m.zx + v.g * m.zy + v.b * m.zz,
+                v.a};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Translation)) {
+        return {v.r + m.xw, //
+                v.g + m.yw,
+                v.b + m.zw,
+                v.a};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Scale)) {
+        return {v.r * m.xx, //
+                v.g * m.yy,
+                v.b * m.zz,
+                v.a};
+    }
+    if constexpr (Mat4XYZW::flags.testFlags(MF_Rotation)) {
+        return {v.r /*  */ + v.g * m.xy + v.b * m.xz, //
+                v.r * m.yx + v.g /*  */ + v.b * m.yz,
+                v.r * m.zx + v.g * m.zy + v.b /*  */,
+                v.a};
+    }
+}
+
+inline QColorTransform colorSpaceTransform(QColorSpace from, QColorSpace to)
+{
+    if (from == to) {
+        return {};
+    }
+    // Cache QColorTransforms since they aren't necessarily cheap to generate.
+    // They share underlying data, so at least they're cheap to copy.
+    // Can't use QMap/QHash/map/unordered_map since there's no QColorSpace hash.
+    struct Element {
+        QColorSpace from;
+        QColorSpace to;
+        QColorTransform transform;
+    };
+    static auto cache = []() -> std::vector<Element> {
+        // Initialize with sRGB <-> linear sRGB since sRGB is the most common.
+        QColorSpace sRGB = QColorSpace::SRgb;
+        QColorSpace sRGBLinear = QColorSpace::SRgbLinear;
+        return {{sRGB, sRGBLinear, sRGB.transformationToColorSpace(sRGBLinear)}, //
+                {sRGBLinear, sRGB, sRGBLinear.transformationToColorSpace(sRGB)}};
+    }();
+    auto it = std::ranges::find_if(cache, [&](const Element &e) {
+        return e.from == from && e.to == to;
+    });
+    if (it != cache.end()) {
+        return it->transform;
+    }
+    return cache.emplace_back(from, to, from.transformationToColorSpace(to)).transform;
+}
+
+inline QColorSpace imageColorSpace(const QImage &image)
+{
+    auto cs = image.colorSpace();
+    if (cs.isValidTarget()) {
+        return cs;
+    }
+    return QColorSpace::SRgb;
+}
+
+inline QImage defaultImage(const QSize &size, qreal dpr)
+{
+    // RGBA is better for frequent updates to large regions of the scene graph
+    // than ARGB since there's no need to rearrange (swizzle) the channels.
+    // ARGB is better for frequent updates to large regions with QPainter.
+    // Our QPainter logic usually updates small regions frequently and large
+    // regions infrequently.
+    QImage image(size, QImage::Format_RGBA8888_Premultiplied);
+    // All of the following QImage methods will no-op if the QImage is null
+    // (e.g., invalid size, failed to allocate).
+    // ---
+    // By default, QImage has an invalid QColorSpace that is assumed sRGB by
+    // QPainter and other Qt/KDE APIs.
+    // Explicitly use sRGB so that we can track the colorspace.
+    image.setColorSpace(QColorSpace::SRgb);
+    image.setDevicePixelRatio(dpr);
+    image.fill(Qt::transparent);
+    return image;
+}
+
+inline QRectF deviceIndependentRect(const QImage &image)
+{
+    return {{0, 0}, image.deviceIndependentSize()};
+}
+
+}
 
 /*!
  * \inqmlmodule org.kde.kquickimageeditor

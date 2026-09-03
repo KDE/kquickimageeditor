@@ -22,40 +22,6 @@
 
 using namespace Qt::StringLiterals;
 
-inline QColorSpace imageColorSpace(const QImage &image)
-{
-    auto cs = image.colorSpace();
-    if (cs.isValidTarget()) {
-        return cs;
-    }
-    return QColorSpace::SRgb;
-}
-
-QImage defaultImage(const QSize &size, qreal dpr)
-{
-    // RGBA is better for frequent updates to large regions of the scene graph
-    // than ARGB since there's no need to rearrange (swizzle) the channels.
-    // ARGB is better for frequent updates to large regions with QPainter.
-    // Our QPainter logic usually updates small regions frequently and large
-    // regions infrequently.
-    QImage image(size, QImage::Format_RGBA8888_Premultiplied);
-    // All of the following QImage methods will no-op if the QImage is null
-    // (e.g., invalid size, failed to allocate).
-    // ---
-    // By default, QImage has an invalid QColorSpace that is assumed sRGB by
-    // QPainter and other Qt/KDE APIs.
-    // Explicitly use sRGB so that we can track the colorspace.
-    image.setColorSpace(QColorSpace::SRgb);
-    image.setDevicePixelRatio(dpr);
-    image.fill(Qt::transparent);
-    return image;
-}
-
-inline QRectF deviceIndependentRect(const QImage &image)
-{
-    return {{0, 0}, image.deviceIndependentSize()};
-}
-
 // lambda-style struct
 struct UpdateImages {
     using Type = AnnotationDocument::RepaintType;
@@ -68,7 +34,7 @@ struct UpdateImages {
             return types;
         }
         if (types.testFlag(Type::BaseImage)) {
-            const auto baseCanvasRect = deviceIndependentRect(d->baseImage);
+            const auto baseCanvasRect = UtilsNS::deviceIndependentRect(d->baseImage);
             const auto baseIntersection = d->invertedTransform.mapRect(d->canvasRect).intersected(baseCanvasRect);
             // check to avoid unnecessary deep copies
             if (baseIntersection != baseCanvasRect) {
@@ -81,15 +47,15 @@ struct UpdateImages {
                 d->baseImageCache = d->baseImageCache.transformed(d->transform.toTransform(), Qt::SmoothTransformation);
             }
             // No-op if same colorspace. Ensures the correct colorspace is always used.
-            d->baseImageCache.setColorSpace(d->colorSpace.isValidTarget() ? d->colorSpace : imageColorSpace(d->baseImage));
+            d->baseImageCache.setColorSpace(d->colorSpace.isValidTarget() ? d->colorSpace : UtilsNS::imageColorSpace(d->baseImage));
             ColorAdjustment::adjust(d->baseImageCache, d->colorMatrix, d->gammaAdjustment);
             // Some types of annotations like Highlight, Blur and Pixelate will have
             // to be repainted when the base image cache changes.
-            d->annotationsImage = defaultImage(d->imageSize, d->imageDpr);
+            d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
         }
         if (types.testFlag(Type::Annotations)) {
             if (d->annotationsImage.isNull()) {
-                d->annotationsImage = defaultImage(d->imageSize, d->imageDpr);
+                d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
             }
             QPainter painter(&d->annotationsImage);
             painter.setTransform(d->renderTransform.toTransform());
@@ -257,12 +223,12 @@ void AnnotationDocument::setBaseImage(const QImage &image)
     d->baseImage = image;
     d->originalCacheKey = image.cacheKey();
     d->baseImage.convertTo(Utils::formatForQPainter(image.format()));
-    const auto baseCS = imageColorSpace(image);
+    const auto baseCS = UtilsNS::imageColorSpace(image);
     d->baseImage.setColorSpace(baseCS);
     d->colorMatrix = {};
     d->gammaAdjustment = 1.0f;
     d->colorSpace = baseCS;
-    d->setCanvas(deviceIndependentRect(image), image.devicePixelRatio(), QTransform{});
+    d->setCanvas(UtilsNS::deviceIndependentRect(image), image.devicePixelRatio(), QTransform{});
 }
 
 void AnnotationDocument::setBaseImage(const QString &path)
@@ -626,7 +592,7 @@ QImage AnnotationDocumentPrivate::rangeImage(History::SubRange range) const
 {
     auto image = baseImage;
     QPainter p(&image);
-    paintAnnotations(&p, deviceIndependentRect(image).toAlignedRect(), range);
+    paintAnnotations(&p, UtilsNS::deviceIndependentRect(image).toAlignedRect(), range);
     p.end();
     return image;
 }
@@ -721,7 +687,7 @@ void AnnotationDocument::undo()
         if (parent) {
             d->setCanvas(Traits::geometryPathBounds(parent->traits()), d->imageDpr);
         } else {
-            d->setCanvas(deviceIndependentRect(d->baseImage), d->imageDpr);
+            d->setCanvas(UtilsNS::deviceIndependentRect(d->baseImage), d->imageDpr);
         }
     }
     if (auto &colorAdjustment = std::get<Traits::Meta::ColorAdjustment::Opt>(currentItem->traits())) {
