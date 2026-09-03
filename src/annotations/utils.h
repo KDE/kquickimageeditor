@@ -30,10 +30,6 @@ class Utils : public QObject
     QML_SINGLETON
     QML_ELEMENT
 public:
-    Utils(QObject *parent = nullptr)
-        : QObject(parent)
-    {
-    }
 
     static Utils *create(QQmlEngine *engine, QJSEngine *)
     {
@@ -43,6 +39,7 @@ public:
         QJSEngine::setObjectOwnership(inst, QJSEngine::CppOwnership);
         return inst;
     }
+    Utils(QObject *parent = nullptr);
 
     template<typename T>
     constexpr static inline T dprRound(T value, qreal dpr) noexcept

@@ -57,6 +57,7 @@ target_sources(KQuickImageEditor PRIVATE
     annotations/stackblur.h
     annotations/traits.cpp
     annotations/traits.h
+    annotations/utils.cpp
     annotations/utils.h
     annotations/coloradjustment.cpp
     annotations/coloradjustment.h
