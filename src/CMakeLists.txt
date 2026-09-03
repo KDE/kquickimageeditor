@@ -53,6 +53,8 @@ target_sources(KQuickImageEditor PRIVATE
     annotations/history.h
     annotations/qmlpainterpath.cpp
     annotations/qmlpainterpath.h
+    annotations/qmlutils.cpp
+    annotations/qmlutils.h
     annotations/stackblur.cpp
     annotations/stackblur.h
     annotations/traits.cpp
