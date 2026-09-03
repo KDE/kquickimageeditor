@@ -195,6 +195,22 @@ public:
         }
     }
 
+    template<std::floating_point T, typename V>
+    static constexpr bool fuzzyIsNull(V v)
+    {
+        // This logic works better with the Windows CI. MSVC isn't as generous
+        // as GCC with allowing functions to be marked as constexpr.
+        return v <= fuzzyEpsilon<T>() && v >= -fuzzyEpsilon<T>();
+    }
+
+    template<std::floating_point T, typename V1, typename V2>
+    static constexpr bool fuzzyCompare(V1 v1, V2 v2)
+    {
+        // This logic works better with the Windows CI. MSVC isn't as generous
+        // as GCC with allowing functions to be marked as constexpr.
+        return Utils::fuzzyIsNull<T>(v1 < v2 ? v2 - v1 : v1 - v2);
+    }
+
     Q_INVOKABLE static constexpr qreal fuzzyEpsilonF32()
     {
         return fuzzyEpsilon<float>();
@@ -208,12 +224,12 @@ public:
 
     Q_INVOKABLE static constexpr bool fuzzyIsNullF32(qreal v)
     {
-        return v <= fuzzyEpsilon<float>() && v >= -fuzzyEpsilon<float>();
+        return fuzzyIsNull<float>(v);
     }
 
     Q_INVOKABLE static constexpr bool fuzzyCompareF32(qreal v1, qreal v2)
     {
-        return Utils::fuzzyIsNullF32(std::max(v1, v2) - std::min(v1, v2));
+        return fuzzyCompare<float>(v1, v2);
     }
 
     // QQuickMatrix4x4 does not have isIdentity
