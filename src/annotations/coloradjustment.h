@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "utils.h"
 #include <QImage>
 #include <QMatrix4x4>
 #include <QMetaEnum>
@@ -10,11 +11,10 @@
 
 namespace ColorAdjustment
 {
-constexpr bool isValidGammaAdjustment(float gamma)
+constexpr bool isValidGammaAdjustment(auto gamma)
 {
-    // TODO: figure out why including "utils.h" for fuzzyEpsilon causes compilation to fail
-    return gamma > 0.00001f && gamma <= std::numeric_limits<float>::max()
-        && (gamma >= 1.0f ? gamma - 1.0f : 1.0f - gamma) > 0.00001f;
+    return gamma > Utils::fuzzyEpsilon<float>() && gamma <= std::numeric_limits<float>::max()
+        && !Utils::fuzzyCompare<float>(gamma, 1.0f);
 }
 /**
 Apply a normalized RGB 4x4 matrix and a gamma to an image in a linear colorspace.
