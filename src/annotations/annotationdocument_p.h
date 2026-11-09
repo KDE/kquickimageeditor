@@ -126,6 +126,8 @@ public:
     // If the span is not set, all annotations intersecting the region will be painted.
     void paintAnnotations(QPainter *painter, const QRegion &imageRegion, std::optional<History::SubRange> range = std::nullopt) const;
 
+    bool shouldPaintAnnotations(const QRegion &imageRegion, std::optional<History::SubRange> range = std::nullopt) const;
+
     // Get an image that only uses a part of the history.
     QImage rangeImage(History::SubRange range) const;
 

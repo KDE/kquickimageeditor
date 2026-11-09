@@ -51,24 +51,32 @@ struct UpdateImages {
             ColorAdjustment::adjust(d->baseImageCache, d->colorMatrix, d->gammaAdjustment);
             // Some types of annotations like Highlight, Blur and Pixelate will have
             // to be repainted when the base image cache changes.
-            d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
-        }
-        if (types.testFlag(Type::Annotations)) {
-            if (d->annotationsImage.isNull()) {
+            if (d->shouldPaintAnnotations(d->repaintRegion)) {
                 d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
             }
-            QPainter painter(&d->annotationsImage);
-            painter.setTransform(d->renderTransform.toTransform());
-            // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
-            painter.setClipRegion(d->repaintRegion);
-            // Clear mode is needed to actually clear the region.
-            painter.setCompositionMode(QPainter::CompositionMode_Clear);
-            // The painter is clipped to the region, so we can just use eraseRect.
-            painter.eraseRect(d->repaintRegion.boundingRect());
-            // Restore default composition mode.
-            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            d->paintAnnotations(&painter, d->repaintRegion);
-            painter.end();
+        }
+        if (types.testFlag(Type::Annotations)) {
+            if (d->shouldPaintAnnotations(d->repaintRegion)) {
+                if (d->annotationsImage.isNull()) {
+                    d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
+                }
+            } else {
+                d->annotationsImage = QImage();
+            }
+            if (!d->annotationsImage.isNull()) {
+                QPainter painter(&d->annotationsImage);
+                painter.setTransform(d->renderTransform.toTransform());
+                // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
+                painter.setClipRegion(d->repaintRegion);
+                // Clear mode is needed to actually clear the region.
+                painter.setCompositionMode(QPainter::CompositionMode_Clear);
+                // The painter is clipped to the region, so we can just use eraseRect.
+                painter.eraseRect(d->repaintRegion.boundingRect());
+                // Restore default composition mode.
+                painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+                d->paintAnnotations(&painter, d->repaintRegion);
+                painter.end();
+            }
             d->repaintRegion = {};
         }
         d->repaintTypes = Type::NoTypes;
@@ -439,6 +447,20 @@ void AnnotationDocumentPrivate::paintImageView(QPainter *painter, const QImage &
     } else {
         painter->drawImage({0, 0}, image, Utils::rectScaled(viewport, imageDpr));
     }
+}
+
+bool AnnotationDocumentPrivate::shouldPaintAnnotations(const QRegion &region, std::optional<History::SubRange> range) const
+{
+    if (region.isEmpty()) {
+        return false;
+    }
+
+    const auto &undoList = history.undoList();
+    if (undoList.empty() && (!range || range->empty())) {
+        return false;
+    }
+
+    return true;
 }
 
 void AnnotationDocumentPrivate::paintAnnotations(QPainter *painter, const QRegion &region, std::optional<History::SubRange> range) const
