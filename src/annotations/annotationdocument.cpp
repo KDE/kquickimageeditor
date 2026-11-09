@@ -28,48 +28,68 @@ struct UpdateImages {
     using Types = AnnotationDocument::RepaintTypes;
     AnnotationDocumentPrivate *d;
     Types types;
+    inline void updateBaseImage() const
+    {
+        const auto baseCanvasRect = UtilsNS::deviceIndependentRect(d->baseImage);
+        const auto baseIntersection = d->invertedTransform.mapRect(d->canvasRect).intersected(baseCanvasRect);
+        // check to avoid unnecessary deep copies
+        if (baseIntersection != baseCanvasRect) {
+            const auto cacheRect = Utils::rectScaled(baseIntersection, d->imageDpr).toRect();
+            d->baseImageCache = d->baseImage.copy(cacheRect);
+        } else {
+            d->baseImageCache = d->baseImage;
+        }
+        if (!d->transform.isIdentity()) {
+            d->baseImageCache = d->baseImageCache.transformed(d->transform.toTransform(), Qt::SmoothTransformation);
+        }
+        // No-op if same colorspace. Ensures the correct colorspace is always used.
+        d->baseImageCache.setColorSpace(d->colorSpace.isValidTarget() ? d->colorSpace : UtilsNS::imageColorSpace(d->baseImage));
+        ColorAdjustment::adjust(d->baseImageCache, d->colorMatrix, d->gammaAdjustment);
+        // Some types of annotations like Highlight, Blur and Pixelate will have
+        // to be repainted when the base image cache changes.
+        const bool updateAnnotations = std::ranges::any_of(d->history.undoList(), [](const HistoryItem::const_shared_ptr &item) {
+            auto blurOrPixelate = [&] {
+                const auto &fill = std::get<Traits::Fill::Opt>(item->traits());
+                return fill && (fill->index() == Traits::Fill::Blur || fill->index() == Traits::Fill::Pixelate);
+            };
+            return item && (std::get<Traits::Highlight::Opt>(item->traits()) || blurOrPixelate());
+        });
+        if (updateAnnotations) {
+            d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
+        }
+    }
+    inline void updateAnnotationsImage() const
+    {
+        if (d->history.undoList().empty() && d->history.redoList().empty()) {
+            d->annotationsImage = {};
+            return;
+        } else if (d->annotationsImage.isNull()) {
+            d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
+        }
+        QPainter painter(&d->annotationsImage);
+        painter.setTransform(d->renderTransform.toTransform());
+        // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
+        painter.setClipRegion(d->repaintRegion);
+        // Clear mode is needed to actually clear the region.
+        painter.setCompositionMode(QPainter::CompositionMode_Clear);
+        // The painter is clipped to the region, so we can just use eraseRect.
+        painter.eraseRect(d->repaintRegion.boundingRect());
+        // Restore default composition mode.
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        d->paintAnnotations(&painter, d->repaintRegion);
+        painter.end();
+        d->repaintRegion = {};
+    }
     inline Types operator()() const
     {
         if (types == Type::NoTypes) {
             return types;
         }
         if (types.testFlag(Type::BaseImage)) {
-            const auto baseCanvasRect = UtilsNS::deviceIndependentRect(d->baseImage);
-            const auto baseIntersection = d->invertedTransform.mapRect(d->canvasRect).intersected(baseCanvasRect);
-            // check to avoid unnecessary deep copies
-            if (baseIntersection != baseCanvasRect) {
-                const auto cacheRect = Utils::rectScaled(baseIntersection, d->imageDpr).toRect();
-                d->baseImageCache = d->baseImage.copy(cacheRect);
-            } else {
-                d->baseImageCache = d->baseImage;
-            }
-            if (!d->transform.isIdentity()) {
-                d->baseImageCache = d->baseImageCache.transformed(d->transform.toTransform(), Qt::SmoothTransformation);
-            }
-            // No-op if same colorspace. Ensures the correct colorspace is always used.
-            d->baseImageCache.setColorSpace(d->colorSpace.isValidTarget() ? d->colorSpace : UtilsNS::imageColorSpace(d->baseImage));
-            ColorAdjustment::adjust(d->baseImageCache, d->colorMatrix, d->gammaAdjustment);
-            // Some types of annotations like Highlight, Blur and Pixelate will have
-            // to be repainted when the base image cache changes.
-            d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
+            updateBaseImage();
         }
         if (types.testFlag(Type::Annotations)) {
-            if (d->annotationsImage.isNull()) {
-                d->annotationsImage = UtilsNS::defaultImage(d->imageSize, d->imageDpr);
-            }
-            QPainter painter(&d->annotationsImage);
-            painter.setTransform(d->renderTransform.toTransform());
-            // Set clip region to prevent over-painting shadows or semi-transparent annotations near the region.
-            painter.setClipRegion(d->repaintRegion);
-            // Clear mode is needed to actually clear the region.
-            painter.setCompositionMode(QPainter::CompositionMode_Clear);
-            // The painter is clipped to the region, so we can just use eraseRect.
-            painter.eraseRect(d->repaintRegion.boundingRect());
-            // Restore default composition mode.
-            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            d->paintAnnotations(&painter, d->repaintRegion);
-            painter.end();
-            d->repaintRegion = {};
+            updateAnnotationsImage();
         }
         d->repaintTypes = Type::NoTypes;
         d->repaintTypes.notify_all();
