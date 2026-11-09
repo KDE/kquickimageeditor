@@ -166,11 +166,12 @@ void BaseImageMaterialShader::updateSampledImage(RenderState &renderState [[mayb
 class BaseImageNode : public QSGGeometryNode
 {
     QRectF m_rect;
+    QRectF m_sourceRect;
     static constexpr QRectF m_normalizedSourceRect{0.0, 0.0, 1.0, 1.0};
 
 public:
-
     BaseImageNode(const UniformData::Ptr &uniformData)
+        : m_sourceRect(m_normalizedSourceRect)
     {
         setMaterial(new BaseImageMaterial(uniformData));
         setFlag(OwnsMaterial, true);
@@ -187,7 +188,8 @@ public:
             return;
         }
         m_rect = rect;
-        QSGGeometry::updateTexturedRectGeometry(geometry(), rect, m_normalizedSourceRect);
+        QSGGeometry::updateTexturedRectGeometry(geometry(), m_rect, m_sourceRect);
+
         markDirty(DirtyGeometry);
     }
 
@@ -207,6 +209,19 @@ public:
         delete m->texture();
         m->setTexture(texture);
         markDirty(DirtyMaterial);
+    }
+
+    void setSourceRect(const QRectF &sourceRect)
+    {
+        const auto normalizedRect = texture()->convertToNormalizedSourceRect(sourceRect);
+        if (normalizedRect == m_sourceRect) {
+            return;
+        }
+
+        m_sourceRect = normalizedRect;
+        QSGGeometry::updateTexturedRectGeometry(geometry(), m_rect, m_sourceRect);
+
+        markDirty(DirtyGeometry);
     }
 };
 
@@ -689,25 +704,16 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
     const auto canvasRect = d->document->canvasRect();
     const auto canvasView = canvasRect.intersected(d->viewportRect.translated(canvasRect.topLeft()));
     const auto logicalImageView = canvasView.translated(-canvasRect.topLeft());
-    auto windowImageSize = (logicalImageView.size() * windowDpr).toSize();
-    const auto imageView = QRectF(logicalImageView.topLeft() * imageDpr, windowImageSize.toSizeF() / imageScale).toRect();
+    auto windowImageSize = (logicalImageView.size() * windowDpr);
+    const auto imageView = QRectF(logicalImageView.topLeft() * imageDpr, windowImageSize / imageScale).toRect();
     windowImageSize = {imageView.size() * imageScale};
-
-    auto getImage = [&](const QImage &source) -> QImage {
-        const auto sourceBounds = source.rect();
-        auto image = imageView == sourceBounds ? source : source.copy(imageView);
-        if (image.isNull() || qFuzzyCompare(imageScale, 1)) {
-            return image;
-        }
-        return image.scaled(windowImageSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    };
 
     auto baseImageNode = node->baseImageNode();
     if (d->uniformData->dirtyFlags != UniformData::DirtyFlag::None) {
         baseImageNode->markDirty(BaseImageNode::DirtyMaterial);
     }
     if (!baseImageNode->texture() || d->updateBaseImageTexture) {
-        auto image = getImage(d->document->canvasBaseImage());
+        const auto image = d->document->canvasBaseImage();
         QQuickWindow::CreateTextureOptions createTextureOptions = QQuickWindow::TextureHasMipmaps;
         if (image.hasAlphaChannel()) {
             createTextureOptions |= QQuickWindow::TextureHasAlphaChannel;
@@ -720,19 +726,22 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
 
     auto annotationsNode = node->annotationsNode();
     if (!annotationsNode->texture() || d->updateAnnotationsTexture) {
-        annotationsNode->setTexture(window->createTextureFromImage(getImage(d->document->annotationsImage())));
+        annotationsNode->setTexture(window->createTextureFromImage(d->document->annotationsImage()));
         d->updateAnnotationsTexture = false;
     }
 
     auto setupImageNode = [&](auto *node) {
-        auto size = node->texture()->textureSize().toSizeF() / windowDpr;
-        if (!size.isEmpty()) {
+        QRectF newRect;
+
+        auto size = windowImageSize / windowDpr;
+        if (!size.isEmpty() && !node->texture()->textureSize().isEmpty()) {
             QPointF pos(std::round((width() - size.width()) / 2 * windowDpr) / windowDpr, //
                         std::round((height() - size.height()) / 2 * windowDpr) / windowDpr);
-            node->setRect({pos, size});
-        } else {
-            node->setRect({});
+            newRect = {pos, size};
         }
+
+        node->setRect(newRect);
+        node->setSourceRect(imageView);
     };
 
     setupImageNode(baseImageNode);
