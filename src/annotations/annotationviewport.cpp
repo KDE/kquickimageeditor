@@ -261,7 +261,6 @@ public:
     {
         appendChildNode(baseImageNode);
         annotationsNode->setOwnsTexture(true);
-        appendChildNode(annotationsNode);
     }
     BaseImageNode *baseImageNode() const
     {
@@ -720,12 +719,22 @@ QSGNode *AnnotationViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDa
 
     auto annotationsNode = node->annotationsNode();
     if (!annotationsNode->texture() || d->updateAnnotationsTexture) {
-        annotationsNode->setTexture(window->createTextureFromImage(getImage(d->document->annotationsImage())));
+        const auto image = d->document->annotationsImage();
+        if (!image.isNull()) {
+            annotationsNode->setTexture(window->createTextureFromImage(getImage(image)));
+            if (annotationsNode->parent() != node) {
+                node->appendChildNode(annotationsNode);
+            }
+        }
         d->updateAnnotationsTexture = false;
     }
 
     auto setupImageNode = [&](auto *node) {
-        auto size = node->texture()->textureSize().toSizeF() / windowDpr;
+        QSizeF size;
+        if (node->texture()) {
+            size = node->texture()->textureSize().toSizeF() / windowDpr;
+        }
+
         if (!size.isEmpty()) {
             QPointF pos(std::round((width() - size.width()) / 2 * windowDpr) / windowDpr, //
                         std::round((height() - size.height()) / 2 * windowDpr) / windowDpr);
