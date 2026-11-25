@@ -596,7 +596,10 @@ QImage AnnotationDocument::annotationsImage() const
 QImage AnnotationDocument::renderToImage() const
 {
     syncImages(d.get());
-    auto image = canvasBaseImage();
+    if (d->annotationsImage.isNull()) {
+        return d->baseImageCache;
+    }
+    auto image = d->baseImageCache;
     QPainter painter(&image);
     d->paintImageView(&painter, annotationsImage());
     painter.end();
